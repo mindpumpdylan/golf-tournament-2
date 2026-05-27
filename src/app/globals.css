@@ -27,21 +27,35 @@ body {
 h1, h2, h3 { font-family: 'Playfair Display', serif; }
 
 .btn-primary {
-  @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s;
   background: var(--green-mid);
   color: white;
+  border: none;
+  cursor: pointer;
 }
 .btn-primary:hover { background: var(--green-deep); transform: translateY(-1px); }
 
 .btn-gold {
-  @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s;
   background: var(--gold);
   color: var(--green-deep);
+  border: none;
+  cursor: pointer;
 }
 .btn-gold:hover { background: var(--gold-light); transform: translateY(-1px); }
 
 .card {
-  @apply rounded-2xl p-6 shadow-sm;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   background: white;
   border: 1px solid #e8e4dc;
 }
