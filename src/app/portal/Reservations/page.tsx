@@ -20,7 +20,7 @@ export default function ReservationsPage() {
     setProfile(prof)
     const { data: res } = await supabase.from('reservations').select('*').eq('reserver_id', session.user.id)
     setReservations(res || [])
-    const { data: pl } = await supabase.from('profiles').select('id, full_name').neq('id', session.user.id)
+    const { data: pl } = await supabase.from('profiles').select('*').neq('id', session.user.id)
     setPlayers(pl || [])
   }
 
