@@ -114,4 +114,21 @@ export default function PinPage() {
                       <span className="text-sm font-medium">{entry.profile?.full_name || 'Unknown'}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold
+                      <span className="font-bold text-sm" style={{color:'var(--green-mid)'}}>
+                        {entry.distance_feet}'{entry.distance_inches}"
+                      </span>
+                      {isAdmin && (
+                        <button onClick={() => handleDelete(entry.id)}
+                          className="text-xs text-red-400 hover:text-red-600">✕</button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}

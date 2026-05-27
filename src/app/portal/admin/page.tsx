@@ -138,7 +138,11 @@ export default function AdminPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {p.is_admin && <span className="text-xs px-2 py-0.5 rounded-full" style={{background:'var(--gold)', color:'var(--green-deep)'}}>Admin</span>}
+                  {p.is_admin && (
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={{background:'var(--gold)', color:'var(--green-deep)'}}>
+                      Admin
+                    </span>
+                  )}
                   <button onClick={() => handleToggleAdmin(p.id, p.is_admin)}
                     className="text-xs px-3 py-1 rounded-lg border"
                     style={{borderColor:'#e0ddd6', color:'var(--text-mid)'}}>
@@ -181,3 +185,31 @@ export default function AdminPage() {
           </div>
 
           {teams.length > 0 && (
+            <div className="card">
+              <h2 className="font-display font-bold text-xl mb-4" style={{color:'var(--green-deep)'}}>Current Teams</h2>
+              <div className="space-y-3">
+                {teams.map(team => (
+                  <div key={team.id} className="p-3 rounded-xl" style={{background:'var(--gray-soft)'}}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold" style={{color:'var(--green-deep)'}}>{team.name}</span>
+                      <button onClick={() => handleDeleteTeam(team.id)}
+                        className="text-xs text-red-400 hover:text-red-600">Delete</button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {team.team_members?.map((m: any) => (
+                        <span key={m.id} className="text-xs px-2 py-1 rounded-full"
+                          style={{background:'white', color:'var(--text-mid)'}}>
+                          {m.profiles?.full_name} (HCP: {m.profiles?.handicap ?? 'N/A'})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
