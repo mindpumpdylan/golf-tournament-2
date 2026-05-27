@@ -1,26 +1,47 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --green-deep: #1a3a2a;
+  --green-mid: #2d6a4f;
+  --green-light: #52b788;
+  --gold: #c9a84c;
+  --gold-light: #e8c97a;
+  --cream: #f5f0e8;
+  --white: #ffffff;
+  --gray-soft: #f0ede6;
+  --text-dark: #1a1a1a;
+  --text-mid: #4a4a4a;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--cream);
+  color: var(--text-dark);
+}
+
+h1, h2, h3 { font-family: 'Playfair Display', serif; }
+
+.btn-primary {
+  @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
+  background: var(--green-mid);
+  color: white;
+}
+.btn-primary:hover { background: var(--green-deep); transform: translateY(-1px); }
+
+.btn-gold {
+  @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
+  background: var(--gold);
+  color: var(--green-deep);
+}
+.btn-gold:hover { background: var(--gold-light); transform: translateY(-1px); }
+
+.card {
+  @apply rounded-2xl p-6 shadow-sm;
+  background: white;
+  border: 1px solid #e8e4dc;
 }
