@@ -15,7 +15,10 @@ export default function AvailabilityPage() {
       if (!session) return
       setUserId(session.user.id)
       const { data } = await supabase.from('availability_dates').select('date').eq('user_id', session.user.id)
-      if (data) setSelectedDates(data.map((d: any) => new Date(d.date)))
+      if (data) setSelectedDates(data.map((d: any) => {
+  const [year, month, day] = d.date.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}))
     })
   }, [])
 

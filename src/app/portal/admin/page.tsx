@@ -54,10 +54,12 @@ export default function AdminPage() {
     loadAll()
   }
 
-  const tabs = [
+ const tabs = [
     { key: 'availability', label: '📅 Date Poll' },
     { key: 'players', label: '👥 Players' },
     { key: 'teams', label: '⛳ Teams' },
+    { key: 'reservations', label: '🎟️ Reservations' },
+  ]
   ]
 
   return (
@@ -181,6 +183,80 @@ export default function AdminPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+      {tab === 'reservations' && (
+  <ReservationsAdmin />
+)}
+    </div>
+  )
+}
+function ReservationsAdmin() {
+  const [reservations, setReservations] = useState<any[]>([])
+
+  useEffect(() => {
+    supabase.from('reservations')
+      .select('*, reserver:profiles!reserver_id(full_name, email), player:profiles!player_id(full_name, email)')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setReservations(data || []))
+  }, [])
+
+  const handleExpire = async (id: string) => {
+    await supabase.from('reservations').update({ status: 'expired' }).eq('id', id)
+    setReservations(prev => prev.map(r => r.id === id ? { ...r, status: 'expired' } : r))
+  }
+
+  const handleConfirm = async (id: string) => {
+    await supabase.from('reservations').update({ status: 'confirmed' }).eq('id', id)
+    setReservations(prev => prev.map(r => r.id === id ? { ...r, status: 'confirmed' } : r))
+  }
+
+  const statusStyle = (status: string) => {
+    if (status === 'confirmed') return { background: 'rgba(0,255,135,0.1)', color: 'var(--electric)', border: '1px solid rgba(0,255,135,0.2)' }
+    if (status === 'expired') return { background: 'rgba(255,107,107,0.1)', color: '#ff6b6b', border: '1px solid rgba(255,107,107,0.2)' }
+    return { background: 'rgba(255,215,0,0.1)', color: 'var(--gold)', border: '1px solid rgba(255,215,0,0.2)' }
+  }
+
+  return (
+    <div className="card">
+      <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>All Reservations ({reservations.length})</h2>
+      {reservations.length === 0 ? (
+        <p style={{ color: 'var(--text-muted)' }}>No reservations yet</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {reservations.map(r => (
+            <div key={r.id} style={{ background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <p style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{r.guest_name}</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>{r.guest_email}</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Invited by: <span style={{ color: 'var(--white)' }}>{r.reserver?.full_name || 'Unknown'}</span>
+                  </p>
+                  {r.invite_expires_at && (
+                    <p style={{ fontSize: '0.8rem', color: 'var(--gold)', marginTop: '0.2rem' }}>
+                      Expires: {new Date(r.invite_expires_at).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'capitalize', ...statusStyle(r.status) }}>
+                    {r.status}
+                  </span>
+                  {r.status === 'pending' && (
+                    <>
+                      <button onClick={() => handleConfirm(r.id)} className="btn-electric" style={{ padding: '0.4rem 0.875rem', fontSize: '0.8rem' }}>
+                        Confirm
+                      </button>
+                      <button onClick={() => handleExpire(r.id)} style={{ padding: '0.4rem 0.875rem', fontSize: '0.8rem', background: 'none', border: '1px solid #ff6b6b', color: '#ff6b6b', borderRadius: '0.75rem', cursor: 'pointer' }}>
+                        Expire
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
