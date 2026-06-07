@@ -5,6 +5,13 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'MilkyBun';
+  src: url('/fonts/Milky_Bun.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -33,10 +40,9 @@ body {
 }
 
 h1, h2, h3, h4 {
-  font-family: 'Golfwinks', 'Palatino Linotype', serif;
-  letter-spacing: 0.05em;
-  transform: scale(1.15);
-  transform-origin: left;
+  font-family: 'MilkyBun', 'Palatino Linotype', serif;
+  letter-spacing: 0.03em;
+  transform: none;
   display: block;
 }
 
