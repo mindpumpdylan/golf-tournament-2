@@ -12,6 +12,13 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'AmericanCaptain';
+  src: url('/fonts/American_Captain.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -33,7 +40,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Palatino Linotype', Palatino, 'Book Antiqua', serif;
+  font-family: 'AmericanCaptain', 'Palatino Linotype', Palatino, serif;
   background-color: var(--navy);
   color: var(--white);
   min-height: 100vh;
@@ -42,7 +49,6 @@ body {
 h1, h2, h3, h4 {
   font-family: 'MilkyBun', 'Palatino Linotype', serif;
   letter-spacing: 0.03em;
-  transform: none;
   display: block;
 }
 
@@ -54,7 +60,7 @@ h1, h2, h3, h4 {
   padding: 0.85rem 1.75rem;
   background: var(--electric);
   color: var(--navy);
-  font-family: 'Palatino Linotype', Palatino, serif;
+  font-family: 'AmericanCaptain', 'Palatino Linotype', Palatino, serif;
   font-weight: 700;
   font-size: 0.95rem;
   border-radius: 1rem;
@@ -63,7 +69,7 @@ h1, h2, h3, h4 {
   box-shadow: 0 6px 0 var(--electric-dim), 0 8px 20px rgba(0,255,135,0.3);
   transition: all 0.12s ease;
   text-decoration: none;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
 }
 .btn-electric:hover {
   transform: translateY(-2px);
@@ -87,7 +93,7 @@ h1, h2, h3, h4 {
   padding: 0.85rem 1.75rem;
   background: var(--gold);
   color: var(--navy);
-  font-family: 'Palatino Linotype', Palatino, serif;
+  font-family: 'AmericanCaptain', 'Palatino Linotype', Palatino, serif;
   font-weight: 700;
   font-size: 0.95rem;
   border-radius: 1rem;
@@ -96,7 +102,7 @@ h1, h2, h3, h4 {
   box-shadow: 0 6px 0 var(--gold-dim), 0 8px 20px rgba(255,215,0,0.3);
   transition: all 0.12s ease;
   text-decoration: none;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
 }
 .btn-gold:hover {
   transform: translateY(-2px);
@@ -115,7 +121,7 @@ h1, h2, h3, h4 {
   padding: 0.85rem 1.75rem;
   background: transparent;
   color: var(--white);
-  font-family: 'Palatino Linotype', Palatino, serif;
+  font-family: 'AmericanCaptain', 'Palatino Linotype', Palatino, serif;
   font-weight: 600;
   font-size: 0.95rem;
   border-radius: 1rem;
@@ -123,6 +129,7 @@ h1, h2, h3, h4 {
   cursor: pointer;
   transition: all 0.12s ease;
   text-decoration: none;
+  letter-spacing: 0.05em;
 }
 .btn-ghost:hover {
   border-color: var(--electric);
@@ -151,7 +158,7 @@ h1, h2, h3, h4 {
   border: 2px solid var(--navy-border);
   border-radius: 0.875rem;
   color: var(--white);
-  font-family: 'Palatino Linotype', Palatino, serif;
+  font-family: 'AmericanCaptain', 'Palatino Linotype', Palatino, serif;
   font-size: 0.95rem;
   transition: border-color 0.2s;
   outline: none;
