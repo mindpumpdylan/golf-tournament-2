@@ -1,15 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { ClosestToPin, Profile } from '@/lib/types'
-
-const CURRENT_YEAR = new Date().getFullYear()
-const PAR3_HOLES = [3, 6, 12, 16]
+import { CURRENT_YEAR, PAR3_HOLES } from '@/lib/constants'
 
 export default function PinPage() {
   const [userId, setUserId] = useState('')
-  const [entries, setEntries] = useState<(ClosestToPin & { profile: Profile })[]>([])
-  const [form, setForm] = useState({ hole_number: PAR3_HOLES[0].toString(), distance_feet: '', distance_inches: '' })
+  const [entries, setEntries] = useState<any[]>([])
+  const [form, setForm] = useState({ hole_number: PAR3_HOLES[0].number.toString(), distance_feet: '', distance_inches: '' })
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
@@ -20,17 +17,13 @@ export default function PinPage() {
     setUserId(session.user.id)
     const { data: prof } = await supabase.from('profiles').select('is_admin').eq('id', session.user.id).single()
     setIsAdmin(prof?.is_admin || false)
-    const { data } = await supabase.from('closest_to_pin')
-      .select('*, profiles(full_name)')
-      .eq('tournament_year', CURRENT_YEAR)
-      .order('hole_number').order('distance_feet').order('distance_inches')
-    setEntries((data || []).map((e: any) => ({...e, profile: e.profiles})))
+    const { data } = await supabase.from('closest_to_pin').select('*, profiles(full_name)').eq('tournament_year', CURRENT_YEAR).order('hole_number').order('distance_feet').order('distance_inches')
+    setEntries(data || [])
   }
 
   useEffect(() => {
     load()
-    const sub = supabase.channel('pin').on('postgres_changes',
-      { event: '*', schema: 'public', table: 'closest_to_pin' }, load).subscribe()
+    const sub = supabase.channel('pin-live').on('postgres_changes', { event: '*', schema: 'public', table: 'closest_to_pin' }, load).subscribe()
     return () => { supabase.removeChannel(sub) }
   }, [])
 
@@ -38,88 +31,96 @@ export default function PinPage() {
     e.preventDefault()
     setSubmitting(true)
     const { error } = await supabase.from('closest_to_pin').insert({
-      player_id: userId,
-      tournament_year: CURRENT_YEAR,
+      player_id: userId, tournament_year: CURRENT_YEAR,
       hole_number: parseInt(form.hole_number),
       distance_feet: parseInt(form.distance_feet),
       distance_inches: parseInt(form.distance_inches) || 0,
     })
-    if (!error) { setMessage('Entry submitted!'); setForm({...form, distance_feet: '', distance_inches: ''}) }
+    if (!error) { setMessage('Shot submitted! 🎯'); setForm({ ...form, distance_feet: '', distance_inches: '' }) }
     else setMessage('Error: ' + error.message)
     setSubmitting(false)
     load()
   }
 
-  const handleDelete = async (id: string) => {
-    await supabase.from('closest_to_pin').delete().eq('id', id)
-    load()
-  }
-
   const grouped = PAR3_HOLES.reduce((acc, hole) => {
-    acc[hole] = entries.filter(e => e.hole_number === hole)
+    acc[hole.number] = entries.filter(e => e.hole_number === hole.number)
     return acc
-  }, {} as {[hole: number]: typeof entries})
+  }, {} as { [key: number]: any[] })
+
+  const selectedHole = PAR3_HOLES.find(h => h.number.toString() === form.hole_number)
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div>
-        <h1 className="text-3xl font-display font-bold" style={{color:'var(--green-deep)'}}>📍 Closest to the Pin</h1>
-        <p className="mt-1" style={{color:'var(--text-mid)'}}>Par 3 results — any player can submit</p>
+        <h1 style={{ fontSize: '2.5rem', color: 'var(--electric)', marginBottom: '0.5rem' }}>📍 Closest to the Pin</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Apple Mountain's par 3s — submit your shot, any player can enter</p>
       </div>
 
-      <div className="card">
-        <h2 className="font-display font-bold text-lg mb-4" style={{color:'var(--green-deep)'}}>Submit Your Shot</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Submit form */}
+      <div className="card-glow">
+        <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Submit Your Shot</h2>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>SELECT HOLE</label>
+            <select className="input" value={form.hole_number} onChange={e => setForm({ ...form, hole_number: e.target.value })}>
+              {PAR3_HOLES.map(h => <option key={h.number} value={h.number}>Hole {h.number} — {h.name} ({h.yards} yds)</option>)}
+            </select>
+          </div>
+          {selectedHole && (
+            <div style={{ background: 'rgba(0,255,135,0.06)', border: '1px solid rgba(0,255,135,0.15)', borderRadius: '0.875rem', padding: '0.75rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              <span style={{ color: 'var(--electric)', fontWeight: 700 }}>Hole {selectedHole.number}: {selectedHole.name}</span> · {selectedHole.yards} yards
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
-              <label className="block text-sm font-medium mb-1">Hole (Par 3)</label>
-              <select value={form.hole_number} onChange={e => setForm({...form, hole_number: e.target.value})}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm">
-                {PAR3_HOLES.map(h => <option key={h} value={h}>Hole {h}</option>)}
-              </select>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>FEET FROM PIN</label>
+              <input className="input" type="number" min="0" value={form.distance_feet} onChange={e => setForm({ ...form, distance_feet: e.target.value })} placeholder="12" required />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Feet</label>
-              <input type="number" min="0" value={form.distance_feet}
-                onChange={e => setForm({...form, distance_feet: e.target.value})}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" placeholder="12" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Inches</label>
-              <input type="number" min="0" max="11" value={form.distance_inches}
-                onChange={e => setForm({...form, distance_inches: e.target.value})}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" placeholder="6" />
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>INCHES</label>
+              <input className="input" type="number" min="0" max="11" value={form.distance_inches} onChange={e => setForm({ ...form, distance_inches: e.target.value })} placeholder="6" />
             </div>
           </div>
-          {message && <p className="text-sm" style={{color:'var(--green-mid)'}}>{message}</p>}
-          <button type="submit" className="btn-primary" disabled={submitting}>
-            {submitting ? 'Submitting...' : 'Submit Distance'}
+          {message && <p style={{ color: 'var(--electric)', fontSize: '0.9rem' }}>{message}</p>}
+          <button type="submit" className="btn-electric" disabled={submitting} style={{ alignSelf: 'flex-start' }}>
+            {submitting ? 'Submitting...' : 'Submit Distance 🎯'}
           </button>
         </form>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Results grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
         {PAR3_HOLES.map(hole => (
-          <div key={hole} className="card">
-            <h3 className="font-display font-bold text-lg mb-3" style={{color:'var(--green-deep)'}}>Hole {hole}</h3>
-            {grouped[hole]?.length === 0 ? (
-              <p className="text-sm" style={{color:'var(--text-mid)'}}>No entries yet</p>
+          <div key={hole.number} className="card">
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                <h3 style={{ fontSize: '1.1rem', color: 'var(--electric)' }}>Hole {hole.number} — {hole.name}</h3>
+                <span className="badge-electric" style={{ fontSize: '0.75rem' }}>Par 3</span>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{hole.yards} yards</p>
+            </div>
+            {!grouped[hole.number] || grouped[hole.number].length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic' }}>No shots submitted yet</p>
             ) : (
-              <div className="space-y-2">
-                {grouped[hole]?.map((entry, idx) => (
-                  <div key={entry.id} className="flex items-center justify-between p-2 rounded-lg"
-                    style={{background: idx === 0 ? '#fff8e7' : 'var(--gray-soft)'}}>
-                    <div className="flex items-center gap-2">
-                      {idx === 0 && <span className="text-lg">🏆</span>}
-                      <span className="text-sm font-medium">{entry.profile?.full_name || 'Unknown'}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {grouped[hole.number].map((entry, idx) => (
+                  <div key={entry.id} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '0.6rem 0.875rem', borderRadius: '0.75rem',
+                    background: idx === 0 ? 'rgba(255,215,0,0.1)' : 'var(--navy-light)',
+                    border: idx === 0 ? '1px solid rgba(255,215,0,0.2)' : '1px solid transparent',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {idx === 0 && <span>🏆</span>}
+                      <span style={{ fontSize: '0.9rem', fontWeight: idx === 0 ? 700 : 400 }}>{entry.profiles?.full_name || 'Unknown'}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm" style={{color:'var(--green-mid)'}}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ fontFamily: 'Playfair Display, serif', fontWeight: 700, color: idx === 0 ? 'var(--gold)' : 'var(--electric)', fontSize: '1rem' }}>
                         {entry.distance_feet}'{entry.distance_inches}"
                       </span>
                       {isAdmin && (
-                        <button onClick={() => handleDelete(entry.id)}
-                          className="text-xs text-red-400 hover:text-red-600">✕</button>
+                        <button onClick={async () => { await supabase.from('closest_to_pin').delete().eq('id', entry.id); load() }}
+                          style={{ background: 'none', border: 'none', color: '#ff6b6b', cursor: 'pointer', fontSize: '0.8rem' }}>✕</button>
                       )}
                     </div>
                   </div>

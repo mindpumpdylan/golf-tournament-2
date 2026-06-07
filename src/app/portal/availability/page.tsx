@@ -15,15 +15,13 @@ export default function AvailabilityPage() {
       if (!session) return
       setUserId(session.user.id)
       const { data } = await supabase.from('availability_dates').select('date').eq('user_id', session.user.id)
-      if (data) setSelectedDates(data.map(d => new Date(d.date)))
+      if (data) setSelectedDates(data.map((d: any) => new Date(d.date)))
     })
   }, [])
 
   const toggleDate = (date: Date) => {
     setSelectedDates(prev =>
-      prev.some(d => isSameDay(d, date))
-        ? prev.filter(d => !isSameDay(d, date))
-        : [...prev, date]
+      prev.some(d => isSameDay(d, date)) ? prev.filter(d => !isSameDay(d, date)) : [...prev, date]
     )
     setSaved(false)
   }
@@ -32,9 +30,7 @@ export default function AvailabilityPage() {
     setSaving(true)
     await supabase.from('availability_dates').delete().eq('user_id', userId)
     if (selectedDates.length > 0) {
-      await supabase.from('availability_dates').insert(
-        selectedDates.map(d => ({ user_id: userId, date: format(d, 'yyyy-MM-dd') }))
-      )
+      await supabase.from('availability_dates').insert(selectedDates.map(d => ({ user_id: userId, date: format(d, 'yyyy-MM-dd') })))
     }
     setSaving(false); setSaved(true)
   }
@@ -43,71 +39,61 @@ export default function AvailabilityPage() {
   const startPad = startOfMonth(currentMonth).getDay()
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div>
-        <h1 className="text-3xl font-display font-bold" style={{color:'var(--green-deep)'}}>Date Availability</h1>
-        <p className="mt-1" style={{color:'var(--text-mid)'}}>
-          Tap the dates that work for you. Your selections help admin pick the best tournament date.
-        </p>
+        <h1 style={{ fontSize: '2.5rem', color: 'var(--electric)', marginBottom: '0.5rem' }}>Date Availability</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Tap the dates that work for you. We'll pick the date that works for the most players.</p>
       </div>
 
       <div className="card">
-        <div className="flex items-center justify-between mb-6">
-          <button onClick={() => setCurrentMonth(m => addMonths(m, -1))}
-            className="px-3 py-1 rounded-lg text-sm font-medium" style={{background:'var(--gray-soft)'}}>← Prev</button>
-          <h2 className="font-display text-xl font-bold" style={{color:'var(--green-deep)'}}>
-            {format(currentMonth, 'MMMM yyyy')}
-          </h2>
-          <button onClick={() => setCurrentMonth(m => addMonths(m, 1))}
-            className="px-3 py-1 rounded-lg text-sm font-medium" style={{background:'var(--gray-soft)'}}>Next →</button>
+        {/* Month nav */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+          <button onClick={() => setCurrentMonth(m => addMonths(m, -1))} className="btn-ghost" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>← Prev</button>
+          <h2 style={{ fontSize: '1.5rem', color: 'var(--white)' }}>{format(currentMonth, 'MMMM yyyy')}</h2>
+          <button onClick={() => setCurrentMonth(m => addMonths(m, 1))} className="btn-ghost" style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}>Next →</button>
         </div>
 
-        <div className="grid grid-cols-7 mb-2">
-          {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-            <div key={d} className="text-center text-xs font-semibold py-1" style={{color:'var(--text-mid)'}}>{d}</div>
+        {/* Day labels */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '0.5rem' }}>
+          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+            <div key={d} style={{ textAlign: 'center', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', padding: '0.5rem 0', letterSpacing: '0.05em' }}>{d}</div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-1">
-          {Array.from({length: startPad}).map((_, i) => <div key={`pad-${i}`} />)}
+        {/* Calendar */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.25rem' }}>
+          {Array.from({ length: startPad }).map((_, i) => <div key={`pad-${i}`} />)}
           {days.map(day => {
             const selected = selectedDates.some(d => isSameDay(d, day))
             const today = isToday(day)
             return (
-              <button key={day.toISOString()} onClick={() => toggleDate(day)}
-                className="aspect-square rounded-xl text-sm font-medium transition-all"
-                style={{
-                  background: selected ? 'var(--green-mid)' : today ? 'var(--gray-soft)' : 'transparent',
-                  color: selected ? 'white' : today ? 'var(--green-mid)' : 'var(--text-dark)',
-                  border: today && !selected ? '2px solid var(--green-light)' : '2px solid transparent',
-                  fontWeight: selected ? '600' : '400',
-                }}
-              >
+              <button key={day.toISOString()} onClick={() => toggleDate(day)} style={{
+                aspectRatio: '1', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: selected ? 700 : 400,
+                border: today && !selected ? '2px solid var(--electric)' : '2px solid transparent',
+                background: selected ? 'var(--electric)' : today ? 'rgba(0,255,135,0.08)' : 'var(--navy-light)',
+                color: selected ? 'var(--navy)' : today ? 'var(--electric)' : 'var(--white)',
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}>
                 {format(day, 'd')}
               </button>
             )
           })}
         </div>
 
-        <div className="mt-6 flex items-center justify-between">
-          <p className="text-sm" style={{color:'var(--text-mid)'}}>
-            {selectedDates.length} date{selectedDates.length !== 1 ? 's' : ''} selected
-          </p>
-          <button onClick={handleSave} className="btn-primary" disabled={saving}>
-            {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save My Availability'}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1.5rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{selectedDates.length} date{selectedDates.length !== 1 ? 's' : ''} selected</p>
+          <button onClick={handleSave} className="btn-electric" disabled={saving}>
+            {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Availability'}
           </button>
         </div>
       </div>
 
       {selectedDates.length > 0 && (
         <div className="card">
-          <h3 className="font-display font-bold mb-3" style={{color:'var(--green-deep)'}}>Your Selected Dates</h3>
-          <div className="flex flex-wrap gap-2">
-            {[...selectedDates].sort((a,b) => a.getTime()-b.getTime()).map(d => (
-              <span key={d.toISOString()} className="px-3 py-1 rounded-full text-sm font-medium"
-                style={{background:'var(--green-light)', color:'white'}}>
-                {format(d, 'MMM d, yyyy')}
-              </span>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--white)' }}>Your Selected Dates</h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {[...selectedDates].sort((a, b) => a.getTime() - b.getTime()).map(d => (
+              <span key={d.toISOString()} className="badge-electric">{format(d, 'MMM d, yyyy')}</span>
             ))}
           </div>
         </div>

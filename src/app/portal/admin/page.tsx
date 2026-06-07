@@ -2,20 +2,18 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import type { Profile } from '@/lib/types'
+import { CURRENT_YEAR } from '@/lib/constants'
 import { format } from 'date-fns'
-
-const CURRENT_YEAR = new Date().getFullYear()
 
 export default function AdminPage() {
   const router = useRouter()
-  const [players, setPlayers] = useState<Profile[]>([])
-  const [availability, setAvailability] = useState<{date: string, count: number}[]>([])
+  const [players, setPlayers] = useState<any[]>([])
+  const [availability, setAvailability] = useState<{ date: string, count: number }[]>([])
   const [teams, setTeams] = useState<any[]>([])
   const [teamName, setTeamName] = useState('')
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([])
   const [message, setMessage] = useState('')
-  const [tab, setTab] = useState<'availability'|'players'|'teams'>('availability')
+  const [tab, setTab] = useState<'availability' | 'players' | 'teams'>('availability')
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -31,11 +29,9 @@ export default function AdminPage() {
     setPlayers(pl || [])
     const { data: av } = await supabase.from('availability_dates').select('date')
     if (av) {
-      const counts: {[date: string]: number} = {}
-      av.forEach((a: {date: string}) => { counts[a.date] = (counts[a.date] || 0) + 1 })
-      const sorted = Object.entries(counts).map(([date, count]) => ({date, count}))
-        .sort((a, b) => b.count - a.count)
-      setAvailability(sorted)
+      const counts: { [date: string]: number } = {}
+      av.forEach((a: any) => { counts[a.date] = (counts[a.date] || 0) + 1 })
+      setAvailability(Object.entries(counts).map(([date, count]) => ({ date, count })).sort((a, b) => b.count - a.count))
     }
     const { data: tm } = await supabase.from('teams').select('*, team_members(*, profiles(*))').eq('tournament_year', CURRENT_YEAR)
     setTeams(tm || [])
@@ -58,11 +54,6 @@ export default function AdminPage() {
     loadAll()
   }
 
-  const handleToggleAdmin = async (playerId: string, current: boolean) => {
-    await supabase.from('profiles').update({ is_admin: !current }).eq('id', playerId)
-    loadAll()
-  }
-
   const tabs = [
     { key: 'availability', label: '📅 Date Poll' },
     { key: 'players', label: '👥 Players' },
@@ -70,54 +61,41 @@ export default function AdminPage() {
   ]
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div>
-        <h1 className="text-3xl font-display font-bold" style={{color:'var(--green-deep)'}}>⚙️ Admin Dashboard</h1>
-        <p className="mt-1" style={{color:'var(--text-mid)'}}>Manage the {CURRENT_YEAR} tournament</p>
+        <h1 style={{ fontSize: '2.5rem', color: 'var(--gold)', marginBottom: '0.5rem' }}>⚙️ Admin Dashboard</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Manage the {CURRENT_YEAR} High Country Classic</p>
       </div>
 
-      <div className="flex gap-2">
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
         {tabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key as any)}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            style={{
-              background: tab === t.key ? 'var(--green-mid)' : 'white',
-              color: tab === t.key ? 'white' : 'var(--text-mid)',
-              border: '1px solid #e0ddd6'
-            }}>
-            {t.label}
-          </button>
+          <button key={t.key} onClick={() => setTab(t.key as any)} style={{
+            padding: '0.6rem 1.25rem', borderRadius: '0.875rem', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
+            background: tab === t.key ? 'var(--electric)' : 'var(--navy-card)',
+            color: tab === t.key ? 'var(--navy)' : 'var(--text-muted)',
+            border: `1px solid ${tab === t.key ? 'var(--electric)' : 'var(--navy-border)'}`,
+          }}>{t.label}</button>
         ))}
       </div>
 
-      {message && (
-        <div className="px-4 py-3 rounded-lg text-sm" style={{background:'#e6f4ea', color:'#1a6b3a'}}>{message}</div>
-      )}
+      {message && <div style={{ background: 'rgba(0,255,135,0.1)', border: '1px solid rgba(0,255,135,0.2)', borderRadius: '1rem', padding: '1rem', color: 'var(--electric)', fontSize: '0.9rem' }}>{message}</div>}
 
+      {/* Availability */}
       {tab === 'availability' && (
         <div className="card">
-          <h2 className="font-display font-bold text-xl mb-4" style={{color:'var(--green-deep)'}}>Date Availability Results</h2>
-          {availability.length === 0 ? (
-            <p style={{color:'var(--text-mid)'}}>No responses yet</p>
-          ) : (
-            <div className="space-y-2">
-              {availability.map(({date, count}) => (
-                <div key={date} className="flex items-center gap-3">
-                  <span className="text-sm font-medium w-36" style={{color:'var(--green-deep)'}}>
+          <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Date Poll Results</h2>
+          {availability.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No responses yet</p> : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {availability.map(({ date, count }) => (
+                <div key={date} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 600, width: '160px', flexShrink: 0 }}>
                     {format(new Date(date + 'T12:00:00'), 'EEE, MMM d yyyy')}
                   </span>
-                  <div className="flex-1 h-6 rounded-full overflow-hidden" style={{background:'var(--gray-soft)'}}>
-                    <div className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${(count / Math.max(players.length, 1)) * 100}%`,
-                        background: 'var(--green-mid)',
-                        minWidth: '32px'
-                      }}>
-                    </div>
+                  <div style={{ flex: 1, height: '28px', background: 'var(--navy-light)', borderRadius: '999px', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: '999px', background: 'var(--electric)', width: `${(count / Math.max(players.length, 1)) * 100}%`, minWidth: '32px', transition: 'width 0.5s' }} />
                   </div>
-                  <span className="text-sm font-bold w-16 text-right" style={{color:'var(--green-mid)'}}>
-                    {count} / {players.length}
-                  </span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--electric)', width: '60px', textAlign: 'right' }}>{count}/{players.length}</span>
                 </div>
               ))}
             </div>
@@ -125,27 +103,23 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* Players */}
       {tab === 'players' && (
         <div className="card">
-          <h2 className="font-display font-bold text-xl mb-4" style={{color:'var(--green-deep)'}}>Registered Players</h2>
-          <div className="space-y-2">
+          <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Registered Players ({players.length})</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {players.map(p => (
-              <div key={p.id} className="flex items-center justify-between p-3 rounded-xl" style={{background:'var(--gray-soft)'}}>
+              <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
                 <div>
-                  <p className="font-semibold" style={{color:'var(--green-deep)'}}>{p.full_name}</p>
-                  <p className="text-sm" style={{color:'var(--text-mid)'}}>
+                  <p style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{p.full_name}</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                     {p.email} · HCP: {p.handicap ?? 'N/A'} {p.ghin_number ? `· GHIN: ${p.ghin_number}` : ''}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {p.is_admin && (
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{background:'var(--gold)', color:'var(--green-deep)'}}>
-                      Admin
-                    </span>
-                  )}
-                  <button onClick={() => handleToggleAdmin(p.id, p.is_admin)}
-                    className="text-xs px-3 py-1 rounded-lg border"
-                    style={{borderColor:'#e0ddd6', color:'var(--text-mid)'}}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  {p.is_admin && <span className="badge-gold">Admin</span>}
+                  <button onClick={async () => { await supabase.from('profiles').update({ is_admin: !p.is_admin }).eq('id', p.id); loadAll() }}
+                    className="btn-ghost" style={{ padding: '0.4rem 0.875rem', fontSize: '0.8rem' }}>
                     {p.is_admin ? 'Remove Admin' : 'Make Admin'}
                   </button>
                 </div>
@@ -155,50 +129,49 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* Teams */}
       {tab === 'teams' && (
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="card">
-            <h2 className="font-display font-bold text-xl mb-4" style={{color:'var(--green-deep)'}}>Create Team</h2>
-            <div className="space-y-3">
+            <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Create Team</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label className="block text-sm font-medium mb-1">Team Name</label>
-                <input value={teamName} onChange={e => setTeamName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" placeholder="Team Birdie" />
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>TEAM NAME</label>
+                <input className="input" value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="Team Eagle" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Select Players</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.75rem', letterSpacing: '0.05em' }}>SELECT PLAYERS</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
                   {players.map(p => (
-                    <label key={p.id} className="flex items-center gap-2 p-2 rounded-lg cursor-pointer"
-                      style={{background: selectedPlayers.includes(p.id) ? '#e6f4ea' : 'var(--gray-soft)'}}>
+                    <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: '0.75rem', cursor: 'pointer', background: selectedPlayers.includes(p.id) ? 'rgba(0,255,135,0.1)' : 'var(--navy-light)', border: `1px solid ${selectedPlayers.includes(p.id) ? 'rgba(0,255,135,0.3)' : 'transparent'}`, transition: 'all 0.15s' }}>
                       <input type="checkbox" checked={selectedPlayers.includes(p.id)}
-                        onChange={e => setSelectedPlayers(prev =>
-                          e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id)
-                        )} />
-                      <span className="text-sm">{p.full_name}</span>
+                        onChange={e => setSelectedPlayers(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
+                        style={{ accentColor: 'var(--electric)' }} />
+                      <div>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>{p.full_name}</p>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>HCP: {p.handicap ?? 'N/A'}</p>
+                      </div>
                     </label>
                   ))}
                 </div>
               </div>
-              <button onClick={handleCreateTeam} className="btn-primary">Create Team</button>
+              <button onClick={handleCreateTeam} className="btn-electric" style={{ alignSelf: 'flex-start' }}>Create Team</button>
             </div>
           </div>
 
           {teams.length > 0 && (
             <div className="card">
-              <h2 className="font-display font-bold text-xl mb-4" style={{color:'var(--green-deep)'}}>Current Teams</h2>
-              <div className="space-y-3">
+              <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Current Teams</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {teams.map(team => (
-                  <div key={team.id} className="p-3 rounded-xl" style={{background:'var(--gray-soft)'}}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold" style={{color:'var(--green-deep)'}}>{team.name}</span>
-                      <button onClick={() => handleDeleteTeam(team.id)}
-                        className="text-xs text-red-400 hover:text-red-600">Delete</button>
+                  <div key={team.id} style={{ background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--electric)' }}>{team.name}</span>
+                      <button onClick={() => handleDeleteTeam(team.id)} style={{ background: 'none', border: 'none', color: '#ff6b6b', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700 }}>Delete</button>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                       {team.team_members?.map((m: any) => (
-                        <span key={m.id} className="text-xs px-2 py-1 rounded-full"
-                          style={{background:'white', color:'var(--text-mid)'}}>
+                        <span key={m.id} style={{ padding: '0.3rem 0.75rem', borderRadius: '999px', fontSize: '0.8rem', background: 'var(--navy-card)', color: 'var(--white)' }}>
                           {m.profiles?.full_name} (HCP: {m.profiles?.handicap ?? 'N/A'})
                         </span>
                       ))}

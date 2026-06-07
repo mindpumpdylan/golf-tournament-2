@@ -12,10 +12,10 @@ export default function Home() {
     })
   }, [router])
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{background:'var(--green-deep)'}}>
-      <div className="text-white text-center">
-        <h1 className="text-4xl font-display mb-2">⛳</h1>
-        <p className="text-green-light">Loading...</p>
+    <div style={{ minHeight: '100vh', background: 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⛳</div>
+        <p style={{ color: 'var(--text-muted)', fontFamily: 'Syne, sans-serif' }}>Loading...</p>
       </div>
     </div>
   )

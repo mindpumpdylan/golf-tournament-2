@@ -3,8 +3,16 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import type { Profile } from '@/lib/types'
+import { TOURNAMENT_NAME, COURSE_NAME, COURSE_LOCATION, CURRENT_YEAR } from '@/lib/constants'
 
-const CURRENT_YEAR = new Date().getFullYear()
+const tiles = [
+  { href: '/portal/availability', icon: '📅', label: 'Date Poll', desc: 'Vote on tournament dates' },
+  { href: '/portal/reservations', icon: '🎟️', label: 'My Spots', desc: 'Reserve & invite guests' },
+  { href: '/portal/tournament', icon: '🏆', label: 'Tournament', desc: 'Live teams & leaderboard' },
+  { href: '/portal/scorecard', icon: '📋', label: 'Scorecard', desc: 'Enter scores hole by hole' },
+  { href: '/portal/pin', icon: '📍', label: 'Closest to Pin', desc: 'Track par 3 shots' },
+  { href: '/portal/gallery', icon: '📸', label: 'Gallery', desc: 'Photos & videos from the course' },
+]
 
 export default function PortalHome() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -15,54 +23,58 @@ export default function PortalHome() {
       if (!session) return
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
       setProfile(prof)
-      const { data: avail } = await supabase.from('availability_dates')
-        .select('id').eq('user_id', session.user.id).limit(1)
+      const { data: avail } = await supabase.from('availability_dates').select('id').eq('user_id', session.user.id).limit(1)
       setHasSetAvailability(!!(avail && avail.length > 0))
     })
   }, [])
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+      {/* Date prompt banner */}
       {!hasSetAvailability && (
-        <div className="rounded-2xl p-6 border-2" style={{background:'#fff8e7', borderColor:'var(--gold)'}}>
-          <div className="flex items-start gap-4">
-            <span className="text-3xl">📅</span>
+        <div style={{ background: 'rgba(0,255,135,0.08)', border: '1px solid rgba(0,255,135,0.25)', borderRadius: '1.5rem', padding: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ fontSize: '2rem' }}>📅</span>
             <div>
-              <h2 className="text-xl font-display font-bold mb-1" style={{color:'var(--green-deep)'}}>
-                First things first — what dates work for you?
-              </h2>
-              <p className="text-sm mb-4" style={{color:'var(--text-mid)'}}>
-                Help us pick a tournament date that works for everyone. Takes 30 seconds.
-              </p>
-              <Link href="/portal/availability" className="btn-gold inline-block">Pick My Dates →</Link>
+              <p style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.25rem' }}>First things first — pick your dates!</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Tell us when you're available so we can pick the best tournament date.</p>
             </div>
           </div>
+          <Link href="/portal/availability" className="btn-electric" style={{ whiteSpace: 'nowrap' }}>Pick My Dates →</Link>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[
-          { href: '/portal/availability', icon: '📅', title: 'Date Availability', desc: 'Select which dates work for the tournament' },
-          { href: '/portal/reservations', icon: '🎟️', title: 'My Reservations', desc: 'Reserve your spot and invite guests' },
-          { href: '/portal/tournament', icon: '🏆', title: 'Tournament', desc: 'View teams and live standings' },
-          { href: '/portal/scorecard', icon: '📋', title: 'Scorecard', desc: 'Enter and track scores hole by hole' },
-          { href: '/portal/pin', icon: '📍', title: 'Closest to Pin', desc: 'Submit and track par 3 results' },
-          { href: '/portal/gallery', icon: '📸', title: 'Gallery', desc: 'Share photos and videos from the course' },
-        ].map(item => (
-          <Link key={item.href} href={item.href}
-            className="card hover:shadow-md transition-all hover:-translate-y-1 block"
-          >
-            <div className="text-3xl mb-3">{item.icon}</div>
-            <h3 className="font-display font-bold text-lg mb-1" style={{color:'var(--green-deep)'}}>{item.title}</h3>
-            <p className="text-sm" style={{color:'var(--text-mid)'}}>{item.desc}</p>
-          </Link>
-        ))}
+      {/* Hero */}
+      <div style={{ background: 'linear-gradient(135deg, var(--navy-card) 0%, #0a1628 100%)', border: '1px solid var(--navy-border)', borderRadius: '2rem', padding: '3rem 2rem', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: '-50%', left: '50%', transform: 'translateX(-50%)', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(0,255,135,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>⛳</div>
+        <h1 style={{ fontSize: '3rem', color: 'var(--electric)', marginBottom: '0.5rem', lineHeight: 1.1 }}>{TOURNAMENT_NAME}</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginBottom: '0.25rem' }}>{COURSE_NAME}</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{COURSE_LOCATION}</p>
+        <div className="badge-electric" style={{ fontSize: '1rem', padding: '0.5rem 1.5rem' }}>{CURRENT_YEAR} Season</div>
+        {profile && (
+          <p style={{ marginTop: '1.5rem', color: 'var(--white)', fontSize: '1.1rem' }}>
+            Welcome back, <span style={{ color: 'var(--electric)', fontWeight: 700 }}>{profile.full_name?.split(' ')[0]}</span> 👋
+          </p>
+        )}
       </div>
 
-      <div className="card text-center py-10" style={{background:'var(--green-deep)'}}>
-        <div className="text-5xl mb-3">⛳</div>
-        <h2 className="text-3xl font-display text-white mb-2">{CURRENT_YEAR} Tournament</h2>
-        <p style={{color:'var(--green-light)'}}>Welcome back, {profile?.full_name?.split(' ')[0] || 'Player'}</p>
+      {/* Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+        {tiles.map(tile => (
+          <Link key={tile.href} href={tile.href} style={{ textDecoration: 'none' }}>
+            <div className="card" style={{ cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '1rem' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(0,255,135,0.3)'; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--navy-border)'; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)' }}>
+              <div style={{ fontSize: '2rem', width: '3rem', height: '3rem', background: 'var(--navy-light)', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{tile.icon}</div>
+              <div>
+                <p style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.2rem' }}>{tile.label}</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{tile.desc}</p>
+              </div>
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   )

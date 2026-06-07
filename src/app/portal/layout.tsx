@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import type { Profile } from '@/lib/types'
+import { TOURNAMENT_NAME } from '@/lib/constants'
 
 const navItems = [
   { href: '/portal', label: 'Home', icon: '🏠' },
@@ -35,59 +36,77 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className="min-h-screen" style={{background:'var(--cream)'}}>
-      <nav className="sticky top-0 z-50 shadow-md" style={{background:'var(--green-deep)'}}>
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/portal" className="flex items-center gap-2">
-            <span className="text-2xl">⛳</span>
-            <span className="font-display text-xl text-white">Golf Tournament</span>
+    <div style={{ minHeight: '100vh', background: 'var(--navy)' }}>
+      {/* Nav */}
+      <nav style={{ background: 'var(--navy-card)', borderBottom: '1px solid var(--navy-border)', position: 'sticky', top: 0, zIndex: 50 }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '64px' }}>
+          <Link href="/portal" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
+            <span style={{ fontSize: '1.5rem' }}>⛳</span>
+            <span style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.1rem', fontWeight: 700, color: 'var(--electric)', letterSpacing: '-0.02em' }}>
+              {TOURNAMENT_NAME}
+            </span>
           </Link>
-          <div className="hidden md:flex items-center gap-1">
-            {navItems.map(item => (
-              <Link key={item.href} href={item.href}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${pathname === item.href ? 'text-white' : 'text-green-200 hover:text-white'}`}
-                style={pathname === item.href ? {background:'var(--green-mid)'} : {}}
-              >
-                {item.icon} {item.label}
-              </Link>
-            ))}
+
+          {/* Desktop nav */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }} className="hidden md:flex">
+            {navItems.map(item => {
+              const active = pathname === item.href
+              return (
+                <Link key={item.href} href={item.href} style={{
+                  padding: '0.5rem 0.75rem', borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight: 600,
+                  textDecoration: 'none', transition: 'all 0.15s',
+                  background: active ? 'rgba(0,255,135,0.1)' : 'transparent',
+                  color: active ? 'var(--electric)' : 'var(--text-muted)',
+                  border: active ? '1px solid rgba(0,255,135,0.2)' : '1px solid transparent',
+                }}>
+                  {item.icon} {item.label}
+                </Link>
+              )
+            })}
             {profile?.is_admin && (
-              <Link href="/portal/admin"
-                className="px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={{background:'var(--gold)', color:'var(--green-deep)'}}
-              >⚙️ Admin</Link>
+              <Link href="/portal/admin" style={{ padding: '0.5rem 0.75rem', borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight: 700, textDecoration: 'none', background: 'rgba(255,215,0,0.1)', color: 'var(--gold)', border: '1px solid rgba(255,215,0,0.2)' }}>
+                ⚙️ Admin
+              </Link>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden md:block text-sm" style={{color:'var(--green-light)'}}>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }} className="hidden md:block">
               {profile?.full_name}
             </span>
-            <button onClick={handleSignOut} className="text-sm px-3 py-2 rounded-lg" style={{background:'rgba(255,255,255,0.1)', color:'white'}}>
+            <button onClick={handleSignOut} className="btn-ghost" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
               Sign Out
             </button>
-            <button className="md:hidden text-white text-2xl" onClick={() => setMenuOpen(!menuOpen)}>☰</button>
+            <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden" style={{ background: 'none', border: 'none', color: 'var(--white)', fontSize: '1.5rem', cursor: 'pointer' }}>
+              {menuOpen ? '✕' : '☰'}
+            </button>
           </div>
         </div>
+
+        {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden px-4 pb-4 flex flex-col gap-1">
+          <div style={{ borderTop: '1px solid var(--navy-border)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {navItems.map(item => (
-              <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
-                className="px-3 py-2 rounded-lg text-sm text-white"
-                style={pathname === item.href ? {background:'var(--green-mid)'} : {}}
-              >
+              <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} style={{
+                padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: 600,
+                textDecoration: 'none', color: pathname === item.href ? 'var(--electric)' : 'var(--white)',
+                background: pathname === item.href ? 'rgba(0,255,135,0.1)' : 'transparent',
+              }}>
                 {item.icon} {item.label}
               </Link>
             ))}
             {profile?.is_admin && (
-              <Link href="/portal/admin" onClick={() => setMenuOpen(false)}
-                className="px-3 py-2 rounded-lg text-sm font-medium"
-                style={{background:'var(--gold)', color:'var(--green-deep)'}}
-              >⚙️ Admin</Link>
+              <Link href="/portal/admin" onClick={() => setMenuOpen(false)} style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: 700, textDecoration: 'none', color: 'var(--gold)', background: 'rgba(255,215,0,0.1)' }}>
+                ⚙️ Admin
+              </Link>
             )}
           </div>
         )}
       </nav>
-      <main className="max-w-7xl mx-auto px-4 py-8">{children}</main>
+
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1rem' }}>
+        {children}
+      </main>
     </div>
   )
 }

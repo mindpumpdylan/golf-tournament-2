@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
   const result = await new Promise<any>((resolve, reject) => {
     cloudinary.uploader.upload_stream(
-      { resource_type: media_type === 'video' ? 'video' : 'image', folder: 'golf-tournament' },
+      { resource_type: media_type === 'video' ? 'video' : 'image', folder: 'high-country-classic' },
       (err, result) => err ? reject(err) : resolve(result)
     ).end(buffer)
   })
