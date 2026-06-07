@@ -1,9 +1,10 @@
 @font-face {
   font-family: 'Golfwinks';
-src: url('/fonts/Golfwinks Free.ttf') format('truetype');
+  src: url('/fonts/Golfwinks Free.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
 }
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -25,14 +26,15 @@ src: url('/fonts/Golfwinks Free.ttf') format('truetype');
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Golfwinks', 'Palatino Linotype', Palatino, serif;
+  font-family: 'Palatino Linotype', Palatino, 'Book Antiqua', serif;
   background-color: var(--navy);
   color: var(--white);
   min-height: 100vh;
 }
 
 h1, h2, h3, h4 {
-  font-family: 'Golfwinks', serif;
+  font-family: 'Golfwinks', 'Palatino Linotype', serif;
+  letter-spacing: 0.02em;
 }
 
 .btn-electric {
@@ -61,6 +63,11 @@ h1, h2, h3, h4 {
 .btn-electric:active {
   transform: translateY(4px);
   box-shadow: 0 2px 0 var(--electric-dim), 0 4px 12px rgba(0,255,135,0.2);
+}
+.btn-electric:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .btn-gold {
