@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   const link = `${siteUrl}/signup?token=${token}`
 
   await resend.emails.send({
-    from: 'High Country Classic <noreply@yourdomain.com>',
+    from: 'High Country Classic <onboarding@resend.dev>',
     to: email,
     subject: `${inviter} invited you to the High Country Classic!`,
     html: `
