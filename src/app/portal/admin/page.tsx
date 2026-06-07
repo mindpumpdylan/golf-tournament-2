@@ -54,12 +54,12 @@ export default function AdminPage() {
     loadAll()
   }
 
- const tabs = [
-    { key: 'availability', label: '📅 Date Poll' },
-    { key: 'players', label: '👥 Players' },
-    { key: 'teams', label: '⛳ Teams' },
-    { key: 'reservations', label: 'Reservations' },
-  ]
+const tabs = [
+  { key: 'availability', label: 'Date Poll' },
+  { key: 'players', label: 'Players' },
+  { key: 'teams', label: 'Teams' },
+  { key: 'reservations', label: 'Reservations' },
+]
   ]
 
   return (
