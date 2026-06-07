@@ -8,7 +8,7 @@ import { format } from 'date-fns'
 export default function AdminPage() {
   const router = useRouter()
   const [players, setPlayers] = useState<any[]>([])
-  const [availability, setAvailability] = useState<{ date: string, count: number }[]>([])
+  const [availability, setAvailability] = useState<{ date: string, count: number, names: string[] }[]>([])
   const [teams, setTeams] = useState<any[]>([])
   const [teamName, setTeamName] = useState('')
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([])
@@ -27,12 +27,22 @@ export default function AdminPage() {
   const loadAll = async () => {
     const { data: pl } = await supabase.from('profiles').select('*').order('full_name')
     setPlayers(pl || [])
-    const { data: av } = await supabase.from('availability_dates').select('date')
+
+    const { data: av } = await supabase.from('availability_dates').select('date, profiles(full_name)')
     if (av) {
-      const counts: { [date: string]: number } = {}
-      av.forEach((a: any) => { counts[a.date] = (counts[a.date] || 0) + 1 })
-      setAvailability(Object.entries(counts).map(([date, count]) => ({ date, count })).sort((a, b) => b.count - a.count))
+      const counts: { [date: string]: { count: number, names: string[] } } = {}
+      av.forEach((a: any) => {
+        if (!counts[a.date]) counts[a.date] = { count: 0, names: [] }
+        counts[a.date].count++
+        if (a.profiles?.full_name) counts[a.date].names.push(a.profiles.full_name)
+      })
+      setAvailability(
+        Object.entries(counts)
+          .map(([date, { count, names }]) => ({ date, count, names }))
+          .sort((a, b) => b.count - a.count)
+      )
     }
+
     const { data: tm } = await supabase.from('teams').select('*, team_members(*, profiles(*))').eq('tournament_year', CURRENT_YEAR)
     setTeams(tm || [])
   }
@@ -79,22 +89,37 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {message && <div style={{ background: 'rgba(0,255,135,0.1)', border: '1px solid rgba(0,255,135,0.2)', borderRadius: '1rem', padding: '1rem', color: 'var(--electric)', fontSize: '0.9rem' }}>{message}</div>}
+      {message && (
+        <div style={{ background: 'rgba(0,255,135,0.1)', border: '1px solid rgba(0,255,135,0.2)', borderRadius: '1rem', padding: '1rem', color: 'var(--electric)', fontSize: '0.9rem' }}>
+          {message}
+        </div>
+      )}
 
       {tab === 'availability' && (
         <div className="card">
           <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Date Poll Results</h2>
-          {availability.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No responses yet</p> : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {availability.map(({ date, count }) => (
-                <div key={date} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 600, width: '160px', flexShrink: 0 }}>
-                    {format(new Date(date + 'T12:00:00'), 'EEE, MMM d yyyy')}
-                  </span>
-                  <div style={{ flex: 1, height: '28px', background: 'var(--navy-light)', borderRadius: '999px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: '999px', background: 'var(--electric)', width: (count / Math.max(players.length, 1) * 100) + '%', minWidth: '32px', transition: 'width 0.5s' }} />
+          {availability.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)' }}>No responses yet</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {availability.map(({ date, count, names }) => (
+                <div key={date} style={{ background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, flex: 1 }}>
+                      {format(new Date(date + 'T12:00:00'), 'EEE, MMM d yyyy')}
+                    </span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--electric)' }}>{count}/{players.length}</span>
                   </div>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--electric)', width: '60px', textAlign: 'right' }}>{count}/{players.length}</span>
+                  <div style={{ width: '100%', height: '6px', background: 'var(--navy-border)', borderRadius: '999px', marginBottom: '0.75rem' }}>
+                    <div style={{ height: '100%', borderRadius: '999px', background: 'var(--electric)', width: (count / Math.max(players.length, 1) * 100) + '%', transition: 'width 0.5s' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    {(names || []).map((name: string) => (
+                      <span key={name} style={{ padding: '0.2rem 0.65rem', borderRadius: '999px', fontSize: '0.78rem', background: 'rgba(0,255,135,0.1)', color: 'var(--electric)', border: '1px solid rgba(0,255,135,0.2)' }}>
+                        {name}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
@@ -116,8 +141,10 @@ export default function AdminPage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   {p.is_admin && <span className="badge-gold">Admin</span>}
-                  <button onClick={async () => { await supabase.from('profiles').update({ is_admin: !p.is_admin }).eq('id', p.id); loadAll() }}
-                    className="btn-ghost" style={{ padding: '0.4rem 0.875rem', fontSize: '0.8rem' }}>
+                  <button
+                    onClick={async () => { await supabase.from('profiles').update({ is_admin: !p.is_admin }).eq('id', p.id); loadAll() }}
+                    className="btn-ghost"
+                    style={{ padding: '0.4rem 0.875rem', fontSize: '0.8rem' }}>
                     {p.is_admin ? 'Remove Admin' : 'Make Admin'}
                   </button>
                 </div>
@@ -140,7 +167,12 @@ export default function AdminPage() {
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.75rem', letterSpacing: '0.05em' }}>SELECT PLAYERS</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
                   {players.map(p => (
-                    <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: '0.75rem', cursor: 'pointer', background: selectedPlayers.includes(p.id) ? 'rgba(0,255,135,0.1)' : 'var(--navy-light)', border: '1px solid ' + (selectedPlayers.includes(p.id) ? 'rgba(0,255,135,0.3)' : 'transparent'), transition: 'all 0.15s' }}>
+                    <label key={p.id} style={{
+                      display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: '0.75rem', cursor: 'pointer',
+                      background: selectedPlayers.includes(p.id) ? 'rgba(0,255,135,0.1)' : 'var(--navy-light)',
+                      border: '1px solid ' + (selectedPlayers.includes(p.id) ? 'rgba(0,255,135,0.3)' : 'transparent'),
+                      transition: 'all 0.15s'
+                    }}>
                       <input type="checkbox" checked={selectedPlayers.includes(p.id)}
                         onChange={e => setSelectedPlayers(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
                         style={{ accentColor: 'var(--electric)' }} />
@@ -181,9 +213,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      {tab === 'reservations' && (
-        <ReservationsAdmin />
-      )}
+      {tab === 'reservations' && <ReservationsAdmin />}
     </div>
   )
 }
