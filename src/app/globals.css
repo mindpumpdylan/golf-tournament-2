@@ -35,6 +35,7 @@ body {
 h1, h2, h3, h4 {
   font-family: 'Golfwinks', 'Palatino Linotype', serif;
   letter-spacing: 0.02em;
+  font-size: 1.6em;
 }
 
 .btn-electric {
