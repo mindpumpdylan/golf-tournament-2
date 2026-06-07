@@ -13,7 +13,7 @@ export default function AdminPage() {
   const [teamName, setTeamName] = useState('')
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([])
   const [message, setMessage] = useState('')
-  const [tab, setTab] = useState<'availability' | 'players' | 'teams'>('availability')
+  const [tab, setTab] = useState<'availability' | 'players' | 'teams' | 'reservations'>('availability')
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -43,7 +43,7 @@ export default function AdminPage() {
     if (team) {
       await supabase.from('team_members').insert(selectedPlayers.map(pid => ({ team_id: team.id, player_id: pid })))
       setTeamName(''); setSelectedPlayers([])
-      setMessage(`Team "${teamName}" created!`)
+      setMessage('Team "' + teamName + '" created!')
       loadAll()
     }
   }
@@ -54,36 +54,33 @@ export default function AdminPage() {
     loadAll()
   }
 
-const tabs = [
-  { key: 'availability', label: 'Date Poll' },
-  { key: 'players', label: 'Players' },
-  { key: 'teams', label: 'Teams' },
-  { key: 'reservations', label: 'Reservations' },
-]
+  const tabs = [
+    { key: 'availability', label: 'Date Poll' },
+    { key: 'players', label: 'Players' },
+    { key: 'teams', label: 'Teams' },
+    { key: 'reservations', label: 'Reservations' },
   ]
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div>
-        <h1 style={{ fontSize: '2.5rem', color: 'var(--gold)', marginBottom: '0.5rem' }}>⚙️ Admin Dashboard</h1>
+        <h1 style={{ fontSize: '2.5rem', color: 'var(--gold)', marginBottom: '0.5rem' }}>Admin Dashboard</h1>
         <p style={{ color: 'var(--text-muted)' }}>Manage the {CURRENT_YEAR} High Country Classic</p>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         {tabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key as any)} style={{
             padding: '0.6rem 1.25rem', borderRadius: '0.875rem', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
             background: tab === t.key ? 'var(--electric)' : 'var(--navy-card)',
             color: tab === t.key ? 'var(--navy)' : 'var(--text-muted)',
-            border: `1px solid ${tab === t.key ? 'var(--electric)' : 'var(--navy-border)'}`,
+            border: '1px solid ' + (tab === t.key ? 'var(--electric)' : 'var(--navy-border)'),
           }}>{t.label}</button>
         ))}
       </div>
 
       {message && <div style={{ background: 'rgba(0,255,135,0.1)', border: '1px solid rgba(0,255,135,0.2)', borderRadius: '1rem', padding: '1rem', color: 'var(--electric)', fontSize: '0.9rem' }}>{message}</div>}
 
-      {/* Availability */}
       {tab === 'availability' && (
         <div className="card">
           <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Date Poll Results</h2>
@@ -95,7 +92,7 @@ const tabs = [
                     {format(new Date(date + 'T12:00:00'), 'EEE, MMM d yyyy')}
                   </span>
                   <div style={{ flex: 1, height: '28px', background: 'var(--navy-light)', borderRadius: '999px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: '999px', background: 'var(--electric)', width: `${(count / Math.max(players.length, 1)) * 100}%`, minWidth: '32px', transition: 'width 0.5s' }} />
+                    <div style={{ height: '100%', borderRadius: '999px', background: 'var(--electric)', width: (count / Math.max(players.length, 1) * 100) + '%', minWidth: '32px', transition: 'width 0.5s' }} />
                   </div>
                   <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--electric)', width: '60px', textAlign: 'right' }}>{count}/{players.length}</span>
                 </div>
@@ -105,7 +102,6 @@ const tabs = [
         </div>
       )}
 
-      {/* Players */}
       {tab === 'players' && (
         <div className="card">
           <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Registered Players ({players.length})</h2>
@@ -115,7 +111,7 @@ const tabs = [
                 <div>
                   <p style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{p.full_name}</p>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    {p.email} · HCP: {p.handicap ?? 'N/A'} {p.ghin_number ? `· GHIN: ${p.ghin_number}` : ''}
+                    {p.email} · HCP: {p.handicap ?? 'N/A'} {p.ghin_number ? '· GHIN: ' + p.ghin_number : ''}
                   </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -131,7 +127,6 @@ const tabs = [
         </div>
       )}
 
-      {/* Teams */}
       {tab === 'teams' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="card">
@@ -145,7 +140,7 @@ const tabs = [
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.75rem', letterSpacing: '0.05em' }}>SELECT PLAYERS</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
                   {players.map(p => (
-                    <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: '0.75rem', cursor: 'pointer', background: selectedPlayers.includes(p.id) ? 'rgba(0,255,135,0.1)' : 'var(--navy-light)', border: `1px solid ${selectedPlayers.includes(p.id) ? 'rgba(0,255,135,0.3)' : 'transparent'}`, transition: 'all 0.15s' }}>
+                    <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: '0.75rem', cursor: 'pointer', background: selectedPlayers.includes(p.id) ? 'rgba(0,255,135,0.1)' : 'var(--navy-light)', border: '1px solid ' + (selectedPlayers.includes(p.id) ? 'rgba(0,255,135,0.3)' : 'transparent'), transition: 'all 0.15s' }}>
                       <input type="checkbox" checked={selectedPlayers.includes(p.id)}
                         onChange={e => setSelectedPlayers(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
                         style={{ accentColor: 'var(--electric)' }} />
@@ -185,18 +180,20 @@ const tabs = [
           )}
         </div>
       )}
+
       {tab === 'reservations' && (
-  <ReservationsAdmin />
-)}
+        <ReservationsAdmin />
+      )}
     </div>
   )
 }
+
 function ReservationsAdmin() {
   const [reservations, setReservations] = useState<any[]>([])
 
   useEffect(() => {
     supabase.from('reservations')
-      .select('*, reserver:profiles!reserver_id(full_name, email), player:profiles!player_id(full_name, email)')
+      .select('*, reserver:profiles!reserver_id(full_name, email)')
       .order('created_at', { ascending: false })
       .then(({ data }) => setReservations(data || []))
   }, [])
