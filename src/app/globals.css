@@ -1,4 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap');
+@font-face {
+  font-family: 'Golfwinks';
+  src: url('/fonts/Golfwinks_Free.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -20,14 +25,14 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Palatino Linotype', Palatino, 'Book Antiqua', serif;
+  font-family: 'Golfwinks', 'Palatino Linotype', Palatino, serif;
   background-color: var(--navy);
   color: var(--white);
   min-height: 100vh;
 }
 
 h1, h2, h3, h4 {
-  font-family: 'Playfair Display', Palatino, serif;
+  font-family: 'Golfwinks', serif;
 }
 
 .btn-electric {
