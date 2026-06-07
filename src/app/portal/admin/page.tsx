@@ -58,7 +58,7 @@ export default function AdminPage() {
     { key: 'availability', label: '📅 Date Poll' },
     { key: 'players', label: '👥 Players' },
     { key: 'teams', label: '⛳ Teams' },
-    { key: 'reservations', label: '🎟️ Reservations' },
+    { key: 'reservations', label: 'Reservations' },
   ]
   ]
 
