@@ -102,7 +102,7 @@ h1, h2, h3, h4 {
   box-shadow: 0 6px 0 var(--gold-dim), 0 8px 20px rgba(255,215,0,0.3);
   transition: all 0.12s ease;
   text-decoration: none;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.3em;
 }
 .btn-gold:hover {
   transform: translateY(-2px);
