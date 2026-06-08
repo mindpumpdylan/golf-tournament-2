@@ -69,7 +69,7 @@ h1, h2, h3, h4 {
   box-shadow: 0 6px 0 var(--electric-dim), 0 8px 20px rgba(0,255,135,0.3);
   transition: all 0.12s ease;
   text-decoration: none;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
 }
 .btn-electric:hover {
   transform: translateY(-2px);
@@ -102,7 +102,7 @@ h1, h2, h3, h4 {
   box-shadow: 0 6px 0 var(--gold-dim), 0 8px 20px rgba(255,215,0,0.3);
   transition: all 0.12s ease;
   text-decoration: none;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.6em;
 }
 .btn-gold:hover {
   transform: translateY(-2px);
@@ -129,7 +129,7 @@ h1, h2, h3, h4 {
   cursor: pointer;
   transition: all 0.12s ease;
   text-decoration: none;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
 }
 .btn-ghost:hover {
   border-color: var(--electric);
@@ -182,7 +182,7 @@ select.input option {
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
 }
 
 .badge-gold {
@@ -193,4 +193,5 @@ select.input option {
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 700;
+  letter-spacing: 0.1em;
 }
