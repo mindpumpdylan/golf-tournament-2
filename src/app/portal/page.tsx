@@ -46,19 +46,17 @@ export default function PortalHome() {
       )}
 
       {/* Hero */}
-      <div style={{ background: 'linear-gradient(135deg, var(--navy-card) 0%, #0a1628 100%)', border: '1px solid var(--navy-border)', borderRadius: '2rem', padding: '3rem 2rem', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: '-50%', left: '50%', transform: 'translateX(-50%)', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(0,255,135,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
-        <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>⛳</div>
-        <h1 style={{ fontSize: '3rem', color: 'var(--electric)', marginBottom: '0.5rem', lineHeight: 1.1 }}>{TOURNAMENT_NAME}</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginBottom: '0.25rem' }}>{COURSE_NAME}</p>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{COURSE_LOCATION}</p>
-        <div className="badge-electric" style={{ fontSize: '1rem', padding: '0.5rem 1.5rem' }}>{CURRENT_YEAR} Season</div>
-        {profile && (
-          <p style={{ marginTop: '1.5rem', color: 'var(--white)', fontSize: '1.1rem' }}>
-            Welcome back, <span style={{ color: 'var(--electric)', fontWeight: 700 }}>{profile.full_name?.split(' ')[0]}</span> 👋
-          </p>
-        )}
-      </div>
+      style={{ 
+  backgroundImage: 'linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.7)), url("/course.jpg")',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  border: '1px solid var(--navy-border)', 
+  borderRadius: '2rem', 
+  padding: '3rem 2rem', 
+  textAlign: 'center', 
+  position: 'relative', 
+  overflow: 'hidden' 
+}}
 
       {/* Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
