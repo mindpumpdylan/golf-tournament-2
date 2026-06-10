@@ -50,9 +50,9 @@ export default function SignupPage() {
         </div>
 
         <div style={{
-          background: 'rgba(15, 23, 41, 0.85)',
+          background: 'rgba(17, 26, 15, 0.9)',
           backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(0,255,135,0.15)',
+          border: '1px solid rgba(201,168,76,0.2)',
           borderRadius: '1.5rem',
           padding: '2rem',
           boxShadow: '0 25px 50px rgba(0,0,0,0.5)',

@@ -39,16 +39,27 @@ export default function ScorecardPage() {
   const handleSave = async () => {
     if (!myTeam) return
     setSaving(true)
+    let hasError = false
     for (const [hole, strokes] of Object.entries(editing)) {
-      if (!strokes) continue
-      const existing = scores.find(s => s.hole_number === parseInt(hole))
+      const holeNum = parseInt(hole)
+      const existing = scores.find(s => s.hole_number === holeNum)
+      if (!strokes) {
+        if (existing) {
+          const { error } = await supabase.from('scores').delete().eq('id', existing.id)
+          if (error) hasError = true
+        }
+        continue
+      }
+      const strokesNum = parseInt(strokes)
       if (existing) {
-        await supabase.from('scores').update({ strokes: parseInt(strokes) }).eq('id', existing.id)
+        const { error } = await supabase.from('scores').update({ strokes: strokesNum }).eq('id', existing.id)
+        if (error) hasError = true
       } else {
-        await supabase.from('scores').insert({ team_id: myTeam.id, hole_number: parseInt(hole), strokes: parseInt(strokes), entered_by: userId })
+        const { error } = await supabase.from('scores').insert({ team_id: myTeam.id, hole_number: holeNum, strokes: strokesNum, entered_by: userId })
+        if (error) hasError = true
       }
     }
-    setMessage('Scores saved!')
+    setMessage(hasError ? 'Some scores failed to save. Please try again.' : 'Scores saved!')
     setSaving(false)
     load()
   }
@@ -72,7 +83,7 @@ export default function ScorecardPage() {
         <p style={{ color: 'var(--text-muted)' }}>Team: <span style={{ color: 'var(--white)', fontWeight: 700 }}>{myTeam.name}</span></p>
       </div>
 
-      {message && <div style={{ background: 'rgba(0,255,135,0.1)', border: '1px solid rgba(0,255,135,0.2)', borderRadius: '1rem', padding: '1rem', color: 'var(--electric)', fontSize: '0.9rem' }}>{message}</div>}
+      {message && <div style={{ background: message.includes('failed') ? 'rgba(255,107,107,0.1)' : 'rgba(201,168,76,0.1)', border: '1px solid ' + (message.includes('failed') ? 'rgba(255,107,107,0.3)' : 'rgba(201,168,76,0.25)'), borderRadius: '1rem', padding: '1rem', color: message.includes('failed') ? '#ff6b6b' : 'var(--gold)', fontSize: '0.9rem' }}>{message}</div>}
 
       {/* Front 9 */}
       <div className="card">
@@ -119,9 +130,9 @@ function HoleInput({ hole, value, onChange }: { hole: number, value: string, onC
       <input type="number" min="1" max="20" value={value} onChange={e => onChange(e.target.value)}
         style={{
           width: '100%', textAlign: 'center', padding: '0.85rem', borderRadius: '0.875rem',
-          border: `2px solid ${value ? 'var(--electric)' : 'var(--navy-border)'}`,
-          background: value ? 'rgba(0,255,135,0.08)' : 'var(--navy-light)',
-          color: value ? 'var(--electric)' : 'var(--text-muted)',
+          border: `2px solid ${value ? 'var(--gold)' : 'var(--navy-border)'}`,
+          background: value ? 'rgba(201,168,76,0.08)' : 'var(--navy-light)',
+          color: value ? 'var(--gold)' : 'var(--text-muted)',
           fontSize: '1.5rem', fontFamily: 'Playfair Display, serif', fontWeight: 700,
           outline: 'none', transition: 'all 0.15s',
         }}

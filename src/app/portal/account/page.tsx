@@ -29,7 +29,7 @@ export default function AccountPage() {
     const { data: res } = await supabase.from('reservations').select('*').eq('reserver_id', uid).order('created_at', { ascending: false })
     setReservations(res || [])
 
-    const { data: member } = await supabase.from('team_members').select('team_id, teams(*)').eq('player_id', uid).single()
+    const { data: member } = await supabase.from('team_members').select('team_id, teams(*)').eq('player_id', uid).maybeSingle()
     if (member?.team_id) {
       const { data: sc } = await supabase.from('scores').select('*').eq('team_id', member.team_id)
       setScores(sc || [])
@@ -62,7 +62,7 @@ export default function AccountPage() {
   const pinWins = pinEntries.length
 
   const statusStyle = (status: string) => {
-    if (status === 'confirmed') return { background: 'rgba(0,255,135,0.1)', color: 'var(--electric)', border: '1px solid rgba(0,255,135,0.2)' }
+    if (status === 'confirmed') return { background: 'rgba(201,168,76,0.1)', color: 'var(--gold)', border: '1px solid rgba(201,168,76,0.25)' }
     if (status === 'expired') return { background: 'rgba(255,107,107,0.1)', color: '#ff6b6b', border: '1px solid rgba(255,107,107,0.2)' }
     return { background: 'rgba(255,215,0,0.1)', color: 'var(--gold)', border: '1px solid rgba(255,215,0,0.2)' }
   }
@@ -117,7 +117,7 @@ export default function AccountPage() {
       </div>
 
       {message && (
-        <div style={{ background: 'rgba(0,255,135,0.1)', border: '1px solid rgba(0,255,135,0.2)', borderRadius: '1rem', padding: '1rem', color: 'var(--electric)', fontSize: '0.9rem' }}>{message}</div>
+        <div style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: '1rem', padding: '1rem', color: 'var(--gold)', fontSize: '0.9rem' }}>{message}</div>
       )}
 
       {/* Profile Tab */}

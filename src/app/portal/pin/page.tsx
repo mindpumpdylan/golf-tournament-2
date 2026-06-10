@@ -30,9 +30,15 @@ export default function PinPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
+    const holeNum = parseInt(form.hole_number)
+    await supabase.from('closest_to_pin')
+      .delete()
+      .eq('player_id', userId)
+      .eq('tournament_year', CURRENT_YEAR)
+      .eq('hole_number', holeNum)
     const { error } = await supabase.from('closest_to_pin').insert({
       player_id: userId, tournament_year: CURRENT_YEAR,
-      hole_number: parseInt(form.hole_number),
+      hole_number: holeNum,
       distance_feet: parseInt(form.distance_feet),
       distance_inches: parseInt(form.distance_inches) || 0,
     })
@@ -67,7 +73,7 @@ export default function PinPage() {
             </select>
           </div>
           {selectedHole && (
-            <div style={{ background: 'rgba(0,255,135,0.06)', border: '1px solid rgba(0,255,135,0.15)', borderRadius: '0.875rem', padding: '0.75rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            <div style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.15)', borderRadius: '0.875rem', padding: '0.75rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               <span style={{ color: 'var(--electric)', fontWeight: 700 }}>Hole {selectedHole.number}: {selectedHole.name}</span> · {selectedHole.yards} yards
             </div>
           )}

@@ -10,7 +10,10 @@ export default function TournamentPage() {
 
   const load = async () => {
     const { data: teamsData } = await supabase.from('teams').select('*, team_members(*, profiles(*))').eq('tournament_year', CURRENT_YEAR)
-    const { data: scoresData } = await supabase.from('scores').select('*')
+    const teamIds = teamsData?.map((t: any) => t.id) || []
+    const { data: scoresData } = teamIds.length > 0
+      ? await supabase.from('scores').select('*').in('team_id', teamIds)
+      : { data: [] as Score[] }
     if (teamsData) {
       setTeams(teamsData.map((t: any) => ({
         ...t,
@@ -28,7 +31,10 @@ export default function TournamentPage() {
   }, [])
 
   const getTotal = (scores: Score[]) => scores.reduce((sum, s) => sum + s.strokes, 0)
-  const sorted = [...teams].sort((a, b) => getTotal(a.scores) - getTotal(b.scores))
+  const sorted = [...teams].sort((a, b) => {
+    const diff = getTotal(a.scores) - getTotal(b.scores)
+    return diff !== 0 ? diff : a.name.localeCompare(b.name)
+  })
 
   if (loading) return <div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>Loading tournament...</div>
 

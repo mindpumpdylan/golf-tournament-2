@@ -73,7 +73,7 @@ export default function AvailabilityPage() {
               <button key={day.toISOString()} onClick={() => toggleDate(day)} style={{
                 aspectRatio: '1', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: selected ? 700 : 400,
                 border: today && !selected ? '2px solid var(--electric)' : '2px solid transparent',
-                background: selected ? 'var(--electric)' : today ? 'rgba(0,255,135,0.08)' : 'var(--navy-light)',
+                background: selected ? 'var(--electric)' : today ? 'rgba(201,168,76,0.08)' : 'var(--navy-light)',
                 color: selected ? 'var(--navy)' : today ? 'var(--electric)' : 'var(--white)',
                 cursor: 'pointer', transition: 'all 0.15s',
               }}>
