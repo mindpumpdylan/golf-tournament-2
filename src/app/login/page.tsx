@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { TOURNAMENT_NAME, COURSE_NAME, COURSE_LOCATION } from '@/lib/constants'
+import { COURSE_NAME, COURSE_LOCATION } from '@/lib/constants'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -14,8 +14,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { setError(error.message); setLoading(false) }
     else router.push('/portal')
@@ -24,7 +23,7 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundImage: 'linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.75)), url("/course.jpg")',
+      backgroundImage: 'linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.75)), url("/course.jpg")',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       display: 'flex',
@@ -32,34 +31,29 @@ export default function LoginPage() {
       justifyContent: 'center',
       padding: '1rem',
     }}>
-      <div style={{ width: '100%', maxWidth: '440px' }}>
+      <div style={{ width: '100%', maxWidth: '420px' }}>
 
-        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-         <img src="/logo.png" alt="High Country Classic" style={{ width: '140px', height: '140px', objectFit: 'contain', marginBottom: '0.75rem' }} />
-          <h1 style={{ fontSize: '3rem', color: 'var(--electric)', marginBottom: '0.25rem', lineHeight: 1.1 }}>
-            {TOURNAMENT_NAME}
-          </h1>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>{COURSE_NAME} · {COURSE_LOCATION}</p>
+          <img src="/logo.png" alt="High Country Classic" style={{ width: '180px', height: '180px', objectFit: 'contain', marginBottom: '0.75rem', filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.6))' }} />
+          <p style={{ color: 'rgba(240,230,204,0.6)', fontSize: '0.85rem', letterSpacing: '0.1em' }}>{COURSE_NAME.toUpperCase()} · {COURSE_LOCATION.toUpperCase()}</p>
         </div>
 
-        {/* Card */}
         <div style={{
-          background: 'rgba(15, 23, 41, 0.85)',
+          background: 'rgba(17, 26, 15, 0.9)',
           backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(0,255,135,0.15)',
+          border: '1px solid rgba(201,168,76,0.2)',
           borderRadius: '1.5rem',
           padding: '2rem',
-          boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+          boxShadow: '0 25px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(201,168,76,0.1)',
         }}>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', color: 'var(--white)' }}>Welcome Back</h2>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', color: 'var(--gold)', textAlign: 'center' }}>Welcome Back</h2>
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.08em' }}>EMAIL</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.1em' }}>EMAIL</label>
               <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" required />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.08em' }}>PASSWORD</label>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.1em' }}>PASSWORD</label>
               <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
             </div>
             {error && (
@@ -68,21 +62,16 @@ export default function LoginPage() {
               </div>
             )}
             <button type="submit" className="btn-electric" disabled={loading} style={{ width: '100%', marginTop: '0.5rem', fontSize: '1rem', padding: '1rem' }}>
-              {loading ? 'Signing in...' : 'Sign In →'}
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
-          <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--navy-border)' }}>
+          <div style={{ textAlign: 'center', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
               New to the tournament?{' '}
-              <Link href="/signup" style={{ color: 'var(--electric)', fontWeight: 700, textDecoration: 'none' }}>Create Account</Link>
+              <Link href="/signup" style={{ color: 'var(--gold)', fontWeight: 700, textDecoration: 'none' }}>Create Account</Link>
             </p>
           </div>
         </div>
-
-        {/* Footer */}
-        <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>
-          High Country Classic · Apple Mountain Golf Resort
-        </p>
       </div>
     </div>
   )

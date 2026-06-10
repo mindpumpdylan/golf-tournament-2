@@ -4,7 +4,6 @@ import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import type { Profile } from '@/lib/types'
-import { TOURNAMENT_NAME } from '@/lib/constants'
 
 const navItems = [
   { href: '/portal', label: 'Home' },
@@ -36,72 +35,74 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--navy)' }}>
-      <nav style={{ background: 'var(--navy-card)', borderBottom: '1px solid var(--navy-border)', position: 'sticky', top: 0, zIndex: 50 }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '64px' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      <nav style={{ background: 'var(--card)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 50 }}>
+        {/* Gold top accent line */}
+        <div style={{ height: '2px', background: 'linear-gradient(90deg, transparent, var(--gold-dim), var(--gold), var(--gold-dim), transparent)' }} />
+
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '60px' }}>
 
           {/* Logo */}
           <Link href="/portal" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', flexShrink: 0 }}>
-            <img src="/logo.png" alt="HCC" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
-            <span style={{ fontFamily: 'MilkyBun, Georgia, serif', fontSize: '1.1rem', fontWeight: 700, color: 'var(--electric)', letterSpacing: '-0.01em' }}>
-              {TOURNAMENT_NAME}
+            <img src="/logo.png" alt="HCC" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
+            <span style={{ fontFamily: 'JerseyM54, Georgia, serif', fontSize: '1rem', color: 'var(--gold)', letterSpacing: '0.03em' }}>
+              High Country Classic
             </span>
           </Link>
 
           {/* Desktop nav */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', overflow: 'hidden' }} className="hidden md:flex">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.1rem' }} className="hidden md:flex">
             {navItems.map(item => {
               const active = pathname === item.href
               return (
                 <Link key={item.href} href={item.href} style={{
-                  padding: '0.45rem 0.65rem', borderRadius: '0.75rem', fontSize: '0.8rem', fontWeight: 600,
-                  textDecoration: 'none', transition: 'all 0.15s', whiteSpace: 'nowrap',
-                  background: active ? 'rgba(0,255,135,0.1)' : 'transparent',
-                  color: active ? 'var(--electric)' : 'var(--text-muted)',
-                  border: active ? '1px solid rgba(0,255,135,0.2)' : '1px solid transparent',
+                  padding: '0.4rem 0.6rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 600,
+                  textDecoration: 'none', transition: 'all 0.15s', whiteSpace: 'nowrap', letterSpacing: '0.05em',
+                  background: active ? 'rgba(201,168,76,0.1)' : 'transparent',
+                  color: active ? 'var(--gold)' : 'var(--text-muted)',
+                  border: active ? '1px solid rgba(201,168,76,0.25)' : '1px solid transparent',
                 }}>
-                  {item.label}
+                  {item.label.toUpperCase()}
                 </Link>
               )
             })}
             {profile?.is_admin && (
               <Link href="/portal/admin" style={{
-                padding: '0.45rem 0.65rem', borderRadius: '0.75rem', fontSize: '0.8rem', fontWeight: 700,
-                textDecoration: 'none', background: pathname === '/portal/admin' ? 'rgba(255,215,0,0.2)' : 'rgba(255,215,0,0.08)',
-                color: 'var(--gold)', border: '1px solid rgba(255,215,0,0.2)',
+                padding: '0.4rem 0.6rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 700,
+                textDecoration: 'none', letterSpacing: '0.05em',
+                background: 'rgba(201,168,76,0.08)', color: 'var(--gold)',
+                border: '1px solid rgba(201,168,76,0.2)',
               }}>
-                Admin
+                ADMIN
               </Link>
             )}
           </div>
 
           {/* Right side */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-            {/* My Account button */}
             <Link href="/portal/account" style={{
               display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none',
-              padding: '0.4rem 0.75rem', borderRadius: '999px',
-              background: pathname === '/portal/account' ? 'rgba(0,255,135,0.1)' : 'var(--navy-light)',
-              border: '1px solid ' + (pathname === '/portal/account' ? 'rgba(0,255,135,0.3)' : 'var(--navy-border)'),
+              padding: '0.35rem 0.75rem', borderRadius: '999px',
+              background: 'var(--card-mid)', border: '1px solid var(--border)',
               transition: 'all 0.15s',
             }} className="hidden md:flex">
-              <div style={{ width: '24px', height: '24px', borderRadius: '999px', background: 'var(--electric)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: 'var(--navy)', flexShrink: 0 }}>
+              <div style={{ width: '22px', height: '22px', borderRadius: '999px', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700, color: '#0d0f0a', flexShrink: 0 }}>
                 {profile?.full_name?.charAt(0) || '?'}
               </div>
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--white)', maxWidth: '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cream-dim)', maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>
                 {profile?.full_name?.split(' ')[0]}
               </span>
             </Link>
 
             <button onClick={handleSignOut} style={{
-              padding: '0.45rem 0.875rem', borderRadius: '0.75rem', fontSize: '0.8rem', fontWeight: 700,
-              background: 'transparent', border: '1px solid var(--navy-border)', color: 'var(--text-muted)',
-              cursor: 'pointer', transition: 'all 0.15s',
+              padding: '0.4rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.75rem', fontWeight: 700,
+              background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)',
+              cursor: 'pointer', transition: 'all 0.15s', letterSpacing: '0.06em',
             }} className="hidden md:block">
-              Sign Out
+              SIGN OUT
             </button>
 
-            <button onClick={() => setMenuOpen(!menuOpen)} style={{ background: 'none', border: 'none', color: 'var(--white)', fontSize: '1.5rem', cursor: 'pointer', padding: '0.25rem' }} className="md:hidden">
+            <button onClick={() => setMenuOpen(!menuOpen)} style={{ background: 'none', border: 'none', color: 'var(--cream)', fontSize: '1.5rem', cursor: 'pointer', padding: '0.25rem' }} className="md:hidden">
               {menuOpen ? '✕' : '☰'}
             </button>
           </div>
@@ -109,26 +110,27 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div style={{ borderTop: '1px solid var(--navy-border)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          <div style={{ borderTop: '1px solid var(--border)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', background: 'var(--card)' }}>
             {navItems.map(item => (
               <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} style={{
-                padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: 600,
-                textDecoration: 'none', color: pathname === item.href ? 'var(--electric)' : 'var(--white)',
-                background: pathname === item.href ? 'rgba(0,255,135,0.1)' : 'transparent',
+                padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight: 600,
+                textDecoration: 'none', letterSpacing: '0.05em',
+                color: pathname === item.href ? 'var(--gold)' : 'var(--cream)',
+                background: pathname === item.href ? 'rgba(201,168,76,0.08)' : 'transparent',
               }}>
-                {item.label}
+                {item.label.toUpperCase()}
               </Link>
             ))}
-            <Link href="/portal/account" onClick={() => setMenuOpen(false)} style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', color: 'var(--white)' }}>
-              My Account
+            <Link href="/portal/account" onClick={() => setMenuOpen(false)} style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', color: 'var(--cream)', letterSpacing: '0.05em' }}>
+              MY ACCOUNT
             </Link>
             {profile?.is_admin && (
-              <Link href="/portal/admin" onClick={() => setMenuOpen(false)} style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: 700, textDecoration: 'none', color: 'var(--gold)', background: 'rgba(255,215,0,0.08)' }}>
-                Admin
+              <Link href="/portal/admin" onClick={() => setMenuOpen(false)} style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight: 700, textDecoration: 'none', color: 'var(--gold)', background: 'rgba(201,168,76,0.08)', letterSpacing: '0.05em' }}>
+                ADMIN
               </Link>
             )}
-            <button onClick={handleSignOut} style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.9rem', fontWeight: 600, background: 'none', border: '1px solid var(--navy-border)', color: 'var(--text-muted)', cursor: 'pointer', textAlign: 'left', marginTop: '0.5rem' }}>
-              Sign Out
+            <button onClick={handleSignOut} style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight: 600, background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', textAlign: 'left', marginTop: '0.5rem', letterSpacing: '0.05em' }}>
+              SIGN OUT
             </button>
           </div>
         )}

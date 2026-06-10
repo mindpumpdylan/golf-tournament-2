@@ -19,65 +19,88 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'JerseyM54';
+  src: url('/fonts/Jersey_M54.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --navy: #0a0a1a;
-  --navy-card: #0f1729;
-  --navy-light: #1a2440;
-  --navy-border: #1e2d4a;
-  --electric: #00ff87;
-  --electric-dim: #00cc6a;
-  --electric-glow: rgba(0, 255, 135, 0.15);
-  --gold: #ffd700;
-  --gold-dim: #ccaa00;
-  --white: #ffffff;
-  --text-muted: #8899aa;
+  --bg: #0d0f0a;
+  --card: #111a0f;
+  --card-mid: #162012;
+  --border: #3d3220;
+  --border-light: #4a3d28;
+  --gold: #c9a84c;
+  --gold-bright: #e8c97a;
+  --gold-dim: #8b6f2e;
+  --gold-glow: rgba(201, 168, 76, 0.15);
+  --green-live: #00ff87;
+  --green-live-dim: #00cc6a;
+  --green-muted: #4a7c59;
+  --cream: #f0e6cc;
+  --cream-dim: #c4b89a;
+  --text-muted: #8b7d6b;
+  --text-dark: #5a4f3e;
+  --white: #f0e6cc;
+  --navy: #0d0f0a;
+  --navy-card: #111a0f;
+  --navy-light: #162012;
+  --navy-border: #3d3220;
+  --electric: #c9a84c;
+  --electric-dim: #8b6f2e;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: 'AmericanCaptain', 'Palatino Linotype', Palatino, serif;
-  background-color: var(--navy);
-  color: var(--white);
+  background-color: var(--bg);
+  color: var(--cream);
   min-height: 100vh;
+  letter-spacing: 0.04em;
 }
 
 h1, h2, h3, h4 {
-  font-family: 'MilkyBun', 'Palatino Linotype', serif;
+  font-family: 'JerseyM54', 'Palatino Linotype', serif;
   letter-spacing: 0.03em;
   display: block;
+  color: var(--cream);
 }
 
+/* 3D Buttons */
 .btn-electric {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   padding: 0.85rem 1.75rem;
-  background: var(--electric);
-  color: var(--navy);
-  font-family: 'AmericanCaptain', 'Palatino Linotype', Palatino, serif;
+  background: var(--gold);
+  color: #0d0f0a;
+  font-family: 'AmericanCaptain', Palatino, serif;
   font-weight: 700;
   font-size: 0.95rem;
   border-radius: 1rem;
   border: none;
   cursor: pointer;
-  box-shadow: 0 6px 0 var(--electric-dim), 0 8px 20px rgba(0,255,135,0.3);
+  box-shadow: 0 6px 0 var(--gold-dim), 0 8px 20px rgba(201,168,76,0.25);
   transition: all 0.12s ease;
   text-decoration: none;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
 }
 .btn-electric:hover {
+  background: var(--gold-bright);
   transform: translateY(-2px);
-  box-shadow: 0 8px 0 var(--electric-dim), 0 12px 28px rgba(0,255,135,0.4);
+  box-shadow: 0 8px 0 var(--gold-dim), 0 12px 28px rgba(201,168,76,0.35);
 }
 .btn-electric:active {
   transform: translateY(4px);
-  box-shadow: 0 2px 0 var(--electric-dim), 0 4px 12px rgba(0,255,135,0.2);
+  box-shadow: 0 2px 0 var(--gold-dim);
 }
 .btn-electric:disabled {
   opacity: 0.6;
@@ -92,21 +115,22 @@ h1, h2, h3, h4 {
   gap: 0.5rem;
   padding: 0.85rem 1.75rem;
   background: var(--gold);
-  color: var(--navy);
-  font-family: 'AmericanCaptain', 'Palatino Linotype', Palatino, serif;
+  color: #0d0f0a;
+  font-family: 'AmericanCaptain', Palatino, serif;
   font-weight: 700;
   font-size: 0.95rem;
   border-radius: 1rem;
   border: none;
   cursor: pointer;
-  box-shadow: 0 6px 0 var(--gold-dim), 0 8px 20px rgba(255,215,0,0.3);
+  box-shadow: 0 6px 0 var(--gold-dim), 0 8px 20px rgba(201,168,76,0.25);
   transition: all 0.12s ease;
   text-decoration: none;
-  letter-spacing: 0.6em;
+  letter-spacing: 0.06em;
 }
 .btn-gold:hover {
+  background: var(--gold-bright);
   transform: translateY(-2px);
-  box-shadow: 0 8px 0 var(--gold-dim), 0 12px 28px rgba(255,215,0,0.4);
+  box-shadow: 0 8px 0 var(--gold-dim), 0 12px 28px rgba(201,168,76,0.35);
 }
 .btn-gold:active {
   transform: translateY(4px);
@@ -120,78 +144,103 @@ h1, h2, h3, h4 {
   gap: 0.5rem;
   padding: 0.85rem 1.75rem;
   background: transparent;
-  color: var(--white);
-  font-family: 'AmericanCaptain', 'Palatino Linotype', Palatino, serif;
+  color: var(--cream);
+  font-family: 'AmericanCaptain', Palatino, serif;
   font-weight: 600;
   font-size: 0.95rem;
   border-radius: 1rem;
-  border: 2px solid var(--navy-border);
+  border: 2px solid var(--border);
   cursor: pointer;
   transition: all 0.12s ease;
   text-decoration: none;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
 }
 .btn-ghost:hover {
-  border-color: var(--electric);
-  color: var(--electric);
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
+/* Cards */
 .card {
-  background: var(--navy-card);
-  border: 1px solid var(--navy-border);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 1.5rem;
   padding: 1.5rem;
 }
 
 .card-glow {
-  background: var(--navy-card);
-  border: 1px solid rgba(0, 255, 135, 0.2);
+  background: var(--card);
+  border: 1px solid var(--gold-dim);
   border-radius: 1.5rem;
   padding: 1.5rem;
-  box-shadow: 0 0 30px rgba(0, 255, 135, 0.05);
+  box-shadow: 0 0 30px rgba(201,168,76,0.06);
 }
 
+/* Inputs */
 .input {
   width: 100%;
   padding: 0.85rem 1rem;
-  background: var(--navy-light);
-  border: 2px solid var(--navy-border);
+  background: var(--card-mid);
+  border: 2px solid var(--border);
   border-radius: 0.875rem;
-  color: var(--white);
-  font-family: 'AmericanCaptain', 'Palatino Linotype', Palatino, serif;
+  color: var(--cream);
+  font-family: 'AmericanCaptain', Palatino, serif;
   font-size: 0.95rem;
+  letter-spacing: 0.04em;
   transition: border-color 0.2s;
   outline: none;
 }
 .input:focus {
-  border-color: var(--electric);
-  box-shadow: 0 0 0 3px rgba(0, 255, 135, 0.1);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.1);
 }
 .input::placeholder { color: var(--text-muted); }
 
 select.input option {
-  background: var(--navy-card);
-  color: var(--white);
+  background: var(--card);
+  color: var(--cream);
 }
 
+/* Badges */
 .badge-electric {
   display: inline-block;
   padding: 0.25rem 0.75rem;
-  background: rgba(0, 255, 135, 0.15);
-  color: var(--electric);
+  background: rgba(201,168,76,0.12);
+  color: var(--gold);
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
+  border: 1px solid rgba(201,168,76,0.25);
 }
 
 .badge-gold {
   display: inline-block;
   padding: 0.25rem 0.75rem;
-  background: rgba(255, 215, 0, 0.15);
+  background: rgba(201,168,76,0.12);
   color: var(--gold);
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  border: 1px solid rgba(201,168,76,0.25);
+}
+
+.badge-live {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: rgba(0,255,135,0.12);
+  color: #00ff87;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border: 1px solid rgba(0,255,135,0.25);
+}
+
+/* Gold divider */
+.divider-gold {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  margin: 1rem 0;
 }
