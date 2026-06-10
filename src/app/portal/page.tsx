@@ -122,8 +122,7 @@ export default function PortalHome() {
         position: 'relative',
         overflow: 'hidden',
       }}>
-       <img src="/logo.png" alt="High Country Classic" style={{ width: '140px', height: '140px', objectFit: 'contain', marginBottom: '0.75rem' }} />
-        <h1 style={{ fontSize: '3.5rem', color: 'var(--electric)', marginBottom: '0.5rem', lineHeight: 1.1 }}>{TOURNAMENT_NAME}</h1>
+       <img src="/logo.png" alt="High Country Classic" style={{ width: '320px', height: '320px', objectFit: 'contain', marginBottom: '1rem' }} />
         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.95rem', marginBottom: '0.25rem' }}>{COURSE_NAME}</p>
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>{COURSE_LOCATION}</p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
