@@ -34,6 +34,8 @@ export default function PortalHome() {
   const [recentPhotos, setRecentPhotos] = useState<any[]>([])
   const [totalPlayers, setTotalPlayers] = useState(0)
   const [myGuestCount, setMyGuestCount] = useState(0)
+  const [isRegistered, setIsRegistered] = useState(true)
+  const [registering, setRegistering] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -87,15 +89,42 @@ export default function PortalHome() {
       const { data: photos } = await supabase.from('media_posts').select('cloudinary_url, media_type, hole_number').eq('tournament_year', CURRENT_YEAR).eq('media_type', 'photo').order('created_at', { ascending: false }).limit(4)
       setRecentPhotos(photos || [])
 
+      const { data: reg } = await supabase.from('tournament_registrations').select('id').eq('player_id', uid).eq('tournament_year', CURRENT_YEAR).maybeSingle()
+      setIsRegistered(!!reg)
+
       setLoading(false)
     })
   }, [])
+
+  const handleRegister = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    setRegistering(true)
+    await supabase.from('tournament_registrations').insert({ player_id: session.user.id, tournament_year: CURRENT_YEAR })
+    setIsRegistered(true)
+    setRegistering(false)
+  }
 
   const myTotal = myScores.reduce((sum, s) => sum + s.strokes, 0)
   const widgetStyle: React.CSSProperties = { ...CARD, cursor: 'pointer', transition: 'all 0.2s', minHeight: '180px', display: 'flex', flexDirection: 'column' }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+      {!isRegistered && !loading && (
+        <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '1.5rem', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ fontSize: '1.75rem' }}>🏌️</span>
+            <div>
+              <p style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.2rem', color: GOLD }}>You're not registered for {CURRENT_YEAR} yet!</p>
+              <p style={{ color: MUTED, fontSize: '0.85rem' }}>Confirm your spot in the High Country Classic.</p>
+            </div>
+          </div>
+          <button onClick={handleRegister} disabled={registering} className="btn-electric" style={{ whiteSpace: 'nowrap', fontSize: '0.9rem' }}>
+            {registering ? 'Registering...' : `Register for ${CURRENT_YEAR}`}
+          </button>
+        </div>
+      )}
 
       {!hasSetAvailability && !loading && (
         <div style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: '1.5rem', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>

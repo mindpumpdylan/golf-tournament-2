@@ -8,6 +8,7 @@ import { format } from 'date-fns'
 export default function AdminPage() {
   const router = useRouter()
   const [players, setPlayers] = useState<any[]>([])
+  const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set())
   const [availability, setAvailability] = useState<{ date: string, count: number, names: string[] }[]>([])
   const [teams, setTeams] = useState<any[]>([])
   const [teamName, setTeamName] = useState('')
@@ -27,6 +28,9 @@ export default function AdminPage() {
   const loadAll = async () => {
     const { data: pl } = await supabase.from('profiles').select('*').order('full_name')
     setPlayers(pl || [])
+
+    const { data: regs } = await supabase.from('tournament_registrations').select('player_id').eq('tournament_year', CURRENT_YEAR)
+    setRegisteredIds(new Set(regs?.map((r: any) => r.player_id) || []))
 
     const { data: av } = await supabase.from('availability_dates').select('date, profiles(full_name)')
     if (av) {
@@ -129,7 +133,12 @@ export default function AdminPage() {
 
       {tab === 'players' && (
         <div className="card">
-          <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Registered Players ({players.length})</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+            <h2 style={{ fontSize: '1.3rem' }}>Players ({players.length})</h2>
+            <span style={{ fontSize: '0.85rem', color: registeredIds.size === players.length ? 'var(--gold)' : 'var(--text-muted)', fontWeight: 700 }}>
+              {registeredIds.size}/{players.length} registered for {CURRENT_YEAR}
+            </span>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {players.map(p => (
               <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
@@ -140,6 +149,11 @@ export default function AdminPage() {
                   </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  {registeredIds.has(p.id) && (
+                    <span style={{ padding: '0.25rem 0.7rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(201,168,76,0.12)', color: 'var(--gold)', border: '1px solid rgba(201,168,76,0.3)' }}>
+                      ✓ Registered
+                    </span>
+                  )}
                   {p.is_admin && <span className="badge-gold">Admin</span>}
                   <button
                     onClick={async () => { await supabase.from('profiles').update({ is_admin: !p.is_admin }).eq('id', p.id); loadAll() }}

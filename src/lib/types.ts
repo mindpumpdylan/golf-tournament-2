@@ -61,6 +61,13 @@ export type ClosestToPin = {
   created_at: string
 }
 
+export type TournamentRegistration = {
+  id: string
+  player_id: string
+  tournament_year: number
+  created_at: string
+}
+
 export type MediaPost = {
   id: string
   user_id: string
