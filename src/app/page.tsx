@@ -1,15 +1,16 @@
-import type { Metadata } from 'next'
-import './globals.css'
+'use client'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
-export const metadata: Metadata = {
-  title: 'High Country Classic',
-  description: 'Annual Golf Tournament at Apple Mountain Golf Resort',
-}
+export default function RootPage() {
+  const router = useRouter()
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  )
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      router.push(session ? '/portal' : '/login')
+    })
+  }, [router])
+
+  return null
 }
