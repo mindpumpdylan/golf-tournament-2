@@ -36,7 +36,7 @@ export default function LoginPage() {
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>⛳</div>
+         <img src="/logo.png" alt="High Country Classic" style={{ width: '140px', height: '140px', objectFit: 'contain', marginBottom: '0.75rem' }} />
           <h1 style={{ fontSize: '3rem', color: 'var(--electric)', marginBottom: '0.25rem', lineHeight: 1.1 }}>
             {TOURNAMENT_NAME}
           </h1>

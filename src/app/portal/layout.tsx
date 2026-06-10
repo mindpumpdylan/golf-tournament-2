@@ -42,7 +42,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
           {/* Logo */}
           <Link href="/portal" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', flexShrink: 0 }}>
-            <span style={{ fontSize: '1.5rem' }}>⛳</span>
+            <img src="/logo.png" alt="HCC" style={{ width: '32px', height: '32px', objectFit: 'contain' }} />
             <span style={{ fontFamily: 'MilkyBun, Georgia, serif', fontSize: '1.1rem', fontWeight: 700, color: 'var(--electric)', letterSpacing: '-0.01em' }}>
               {TOURNAMENT_NAME}
             </span>
