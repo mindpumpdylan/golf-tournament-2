@@ -7,11 +7,8 @@ export async function POST(req: NextRequest) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
   const link = `${siteUrl}/signup?token=${token}`
 
-  // NOTE: Change 'onboarding@resend.dev' to a verified domain in your Resend account
-  // (e.g. 'noreply@highcountryclassic.com') before going to production.
-  // The sandbox domain only delivers to verified email addresses.
   await resend.emails.send({
-    from: 'High Country Classic <onboarding@resend.dev>',
+    from: 'High Country Classic <tournament@noreply.highcountryclassic.com>',
     to: email,
     subject: `You're invited to the High Country Classic! ⛳`,
     html: `
