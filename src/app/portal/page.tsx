@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import type { Profile } from '@/lib/types'
@@ -38,6 +38,15 @@ export default function PortalHome() {
   const [isRegistered, setIsRegistered] = useState(true)
   const [registering, setRegistering] = useState(false)
   const [tournamentStatus, setTournamentStatus] = useState('')
+  const [videoMuted, setVideoMuted] = useState(true)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted
+      setVideoMuted(videoRef.current.muted)
+    }
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -162,18 +171,41 @@ export default function PortalHome() {
       )}
 
       {/* Hero */}
-      <div style={{ backgroundImage: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.65)), url("/course.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid #3d3220', borderRadius: '2rem', padding: '3.5rem 2rem', textAlign: 'center', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ position: 'absolute', inset: '6px', borderRadius: '1.6rem', border: '1px solid rgba(201,168,76,0.15)', pointerEvents: 'none' }} />
-        <img src="/logo.png" alt="High Country Classic" style={{ width: '280px', height: '280px', objectFit: 'contain', marginBottom: '1.5rem', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.6))' }} />
-        <p style={{ color: 'rgba(240,230,204,0.65)', fontSize: '0.85rem', marginBottom: '0.2rem', letterSpacing: '0.12em' }}>{COURSE_NAME.toUpperCase()}</p>
-        <p style={{ color: 'rgba(240,230,204,0.45)', fontSize: '0.8rem', marginBottom: '1.5rem', letterSpacing: '0.1em' }}>{COURSE_LOCATION.toUpperCase()}</p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-          <span style={{ background: 'rgba(201,168,76,0.12)', color: GOLD, border: '1px solid rgba(201,168,76,0.25)', borderRadius: '999px', padding: '0.4rem 1.25rem', fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.1em' }}>{CURRENT_YEAR} SEASON</span>
-          {loading ? (
-            <span style={{ color: 'rgba(240,230,204,0.45)', fontSize: '0.9rem' }}>Welcome back!</span>
-          ) : profile ? (
-            <span style={{ color: 'rgba(240,230,204,0.7)', fontSize: '0.9rem' }}>Welcome back, <span style={{ color: GOLD, fontWeight: 700 }}>{displayName(profile)}</span></span>
-          ) : null}
+      <div style={{ border: '1px solid #3d3220', borderRadius: '2rem', padding: '3.5rem 2rem', textAlign: 'center', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Video background */}
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+          src="/High%20country%20classic.mp4"
+        />
+        {/* Gradient overlay */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(rgba(0,0,0,0.52), rgba(0,0,0,0.68))', zIndex: 1 }} />
+        {/* Inner border accent */}
+        <div style={{ position: 'absolute', inset: '6px', borderRadius: '1.6rem', border: '1px solid rgba(201,168,76,0.15)', pointerEvents: 'none', zIndex: 2 }} />
+        {/* Mute toggle */}
+        <button
+          onClick={toggleMute}
+          style={{ position: 'absolute', bottom: '1rem', right: '1rem', zIndex: 3, background: 'rgba(0,0,0,0.45)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: '999px', padding: '0.35rem 0.75rem', color: 'rgba(240,230,204,0.7)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', letterSpacing: '0.05em', backdropFilter: 'blur(4px)' }}
+        >
+          {videoMuted ? '🔇 Unmute' : '🔊 Mute'}
+        </button>
+        {/* Content */}
+        <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img src="/logo.png" alt="High Country Classic" style={{ width: '280px', height: '280px', objectFit: 'contain', marginBottom: '1.5rem', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.6))' }} />
+          <p style={{ color: 'rgba(240,230,204,0.65)', fontSize: '0.85rem', marginBottom: '0.2rem', letterSpacing: '0.12em' }}>{COURSE_NAME.toUpperCase()}</p>
+          <p style={{ color: 'rgba(240,230,204,0.45)', fontSize: '0.8rem', marginBottom: '1.5rem', letterSpacing: '0.1em' }}>{COURSE_LOCATION.toUpperCase()}</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <span style={{ background: 'rgba(201,168,76,0.12)', color: GOLD, border: '1px solid rgba(201,168,76,0.25)', borderRadius: '999px', padding: '0.4rem 1.25rem', fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.1em' }}>{CURRENT_YEAR} SEASON</span>
+            {loading ? (
+              <span style={{ color: 'rgba(240,230,204,0.45)', fontSize: '0.9rem' }}>Welcome back!</span>
+            ) : profile ? (
+              <span style={{ color: 'rgba(240,230,204,0.7)', fontSize: '0.9rem' }}>Welcome back, <span style={{ color: GOLD, fontWeight: 700 }}>{displayName(profile)}</span></span>
+            ) : null}
+          </div>
         </div>
       </div>
 
