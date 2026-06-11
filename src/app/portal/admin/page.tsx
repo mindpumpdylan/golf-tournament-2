@@ -29,7 +29,7 @@ export default function AdminPage() {
   const [teamName, setTeamName] = useState('')
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([])
   const [message, setMessage] = useState('')
-  const [tab, setTab] = useState<'availability' | 'players' | 'teams' | 'reservations' | 'settings'>('availability')
+  const [tab, setTab] = useState<'availability' | 'players' | 'teams' | 'reservations' | 'announce' | 'settings'>('availability')
 
   // Tee time + lock state
   const [teeTimeInputs, setTeeTimeInputs] = useState<{ [id: string]: string }>({})
@@ -190,6 +190,7 @@ export default function AdminPage() {
     { key: 'players', label: 'Players' },
     { key: 'teams', label: 'Teams' },
     { key: 'reservations', label: 'Reservations' },
+    { key: 'announce', label: '📣 Announce' },
     { key: 'settings', label: 'Settings' },
   ]
 
@@ -483,6 +484,9 @@ export default function AdminPage() {
       {/* RESERVATIONS TAB */}
       {tab === 'reservations' && <ReservationsAdmin />}
 
+      {/* ANNOUNCE TAB */}
+      {tab === 'announce' && <AnnounceAdmin players={players} registeredIds={registeredIds} />}
+
       {/* SETTINGS TAB */}
       {tab === 'settings' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -684,6 +688,146 @@ function ReservationsAdmin() {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+function AnnounceAdmin({ players, registeredIds }: { players: any[], registeredIds: Set<string> }) {
+  const [subject, setSubject] = useState('')
+  const [body, setBody] = useState('')
+  const [recipientType, setRecipientType] = useState<'all' | 'registered'>('all')
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState<{ sent: number; failed: number; total: number } | null>(null)
+  const [error, setError] = useState('')
+
+  const registeredCount = registeredIds.size
+  const recipientCount = recipientType === 'registered' ? registeredCount : players.length
+
+  const handleSend = async () => {
+    if (!subject.trim() || !body.trim()) { setError('Subject and body are required'); return }
+    setError('')
+    setSending(true)
+    setResult(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin/blast-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({ subject, body, recipientType }),
+      })
+      const json = await res.json()
+      if (!res.ok) { setError(json.error || 'Send failed'); return }
+      setResult(json)
+      if (json.failed === 0) { setSubject(''); setBody('') }
+    } catch (e: any) {
+      setError(e.message || 'Unexpected error')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  const year = new Date().getFullYear()
+  const TEMPLATES = [
+    {
+      label: 'Registration Open',
+      subject: `${year} High Country Classic — Registration Now Open!`,
+      body: `Registration is now open for the ${year} High Country Classic at Apple Mountain Golf Resort.\n\nLog in to the player portal to confirm your spot, submit your availability, and invite guests.\n\nSee you on the course! 🏌️`,
+    },
+    {
+      label: 'Pairings Released',
+      subject: `Your ${year} HCC Pairings Are Ready`,
+      body: `Teams and tee times are set for the ${year} High Country Classic.\n\nLog in to the player portal to see your team, tee time, and scorecard.\n\nGood luck out there! ⛳`,
+    },
+    {
+      label: 'Tournament Reminder',
+      subject: `Don't Forget — High Country Classic This Weekend!`,
+      body: `Just a reminder that the High Country Classic is coming up soon at Apple Mountain Golf Resort.\n\nLog in to the player portal to review your tee time, team, and any last-minute updates.\n\nCan't wait to see everyone on the course! 🏆`,
+    },
+  ]
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div className="card">
+        <h2 style={{ fontSize: '1.3rem', marginBottom: '0.4rem' }}>Send Email Blast</h2>
+        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Sends via Resend from tournament@noreply.highcountryclassic.com</p>
+
+        {/* Recipient selector */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.6rem', letterSpacing: '0.05em' }}>SEND TO</label>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {([['all', `All Players (${players.length})`], ['registered', `Registered Only (${registeredCount})`]] as const).map(([val, label]) => (
+              <button key={val} onClick={() => setRecipientType(val)} style={{
+                padding: '0.55rem 1.1rem', borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+                background: recipientType === val ? 'rgba(201,168,76,0.15)' : 'var(--navy-light)',
+                color: recipientType === val ? 'var(--gold)' : 'var(--text-muted)',
+                border: `1px solid ${recipientType === val ? 'rgba(201,168,76,0.35)' : 'transparent'}`,
+              }}>{label}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick templates */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.6rem', letterSpacing: '0.05em' }}>QUICK TEMPLATES</label>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {TEMPLATES.map(t => (
+              <button key={t.label} onClick={() => { setSubject(t.subject); setBody(t.body) }} style={{
+                padding: '0.4rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
+                background: 'var(--navy-light)', color: 'var(--text-muted)', border: '1px solid var(--navy-border)',
+              }}>{t.label}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Subject */}
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>SUBJECT</label>
+          <input className="input" value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Tournament Update from the High Country Classic" />
+        </div>
+
+        {/* Body */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>MESSAGE</label>
+          <textarea
+            className="input"
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            rows={7}
+            placeholder={'Write your message here...\n\nBlank lines between paragraphs are preserved in the email.'}
+            style={{ resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6 }}
+          />
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>Each email opens with "Hey [Name]," automatically.</p>
+        </div>
+
+        {error && (
+          <div style={{ background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.25)', borderRadius: '0.875rem', padding: '0.875rem 1rem', color: '#ff8f8f', fontSize: '0.85rem', marginBottom: '1rem' }}>
+            {error}
+          </div>
+        )}
+
+        {result && (
+          <div style={{ background: result.failed === 0 ? 'rgba(201,168,76,0.08)' : 'rgba(255,107,107,0.08)', border: `1px solid ${result.failed === 0 ? 'rgba(201,168,76,0.25)' : 'rgba(255,107,107,0.25)'}`, borderRadius: '0.875rem', padding: '0.875rem 1rem', marginBottom: '1rem' }}>
+            <p style={{ fontWeight: 700, color: result.failed === 0 ? 'var(--gold)' : '#ff8f8f', marginBottom: '0.25rem' }}>
+              {result.failed === 0 ? `✓ Sent to all ${result.sent} recipients!` : `Sent ${result.sent}/${result.total} — ${result.failed} failed`}
+            </p>
+            {result.failed > 0 && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Failed emails are typically invalid addresses. Others were delivered.</p>}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            {recipientCount} email{recipientCount !== 1 ? 's' : ''} will be sent
+          </p>
+          <button
+            onClick={handleSend}
+            disabled={sending || !subject.trim() || !body.trim()}
+            className="btn-electric"
+            style={{ opacity: sending || !subject.trim() || !body.trim() ? 0.6 : 1 }}
+          >
+            {sending ? `Sending to ${recipientCount}...` : `Send to ${recipientCount} Player${recipientCount !== 1 ? 's' : ''} →`}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
