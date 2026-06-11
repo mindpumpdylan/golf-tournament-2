@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR } from '@/lib/constants'
 import { format } from 'date-fns'
+import { displayName as getDisplayName } from '@/lib/utils'
 
 const SIGNUP_URL = 'https://highcountryclassic.com/signup'
 
@@ -21,6 +22,9 @@ export default function AdminPage() {
   const [players, setPlayers] = useState<any[]>([])
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set())
   const [availability, setAvailability] = useState<{ date: string, count: number, names: string[] }[]>([])
+  const [playerDates, setPlayerDates] = useState<Record<string, string[]>>({})
+  const [tournamentDate, setTournamentDate] = useState<string | null>(null)
+  const [settingDate, setSettingDate] = useState(false)
   const [teams, setTeams] = useState<any[]>([])
   const [teamName, setTeamName] = useState('')
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([])
@@ -56,16 +60,37 @@ export default function AdminPage() {
     const { data: regs } = await supabase.from('tournament_registrations').select('player_id').eq('tournament_year', CURRENT_YEAR)
     setRegisteredIds(new Set(regs?.map((r: any) => r.player_id) || []))
 
-    const { data: av } = await supabase.from('availability_dates').select('date, profiles(full_name)').eq('tournament_year', CURRENT_YEAR)
-    if (av) {
-      const counts: { [date: string]: { count: number, names: string[] } } = {}
-      av.forEach((a: any) => {
-        if (!counts[a.date]) counts[a.date] = { count: 0, names: [] }
-        counts[a.date].count++
-        if (a.profiles?.full_name) counts[a.date].names.push(a.profiles.full_name)
-      })
-      setAvailability(Object.entries(counts).map(([date, { count, names }]) => ({ date, count, names })).sort((a, b) => b.count - a.count))
-    }
+    try {
+      const { data: { session: avSession } } = await supabase.auth.getSession()
+      const avToken = avSession?.access_token
+      if (avToken) {
+        const avRes = await fetch('/api/admin/availability', {
+          headers: { Authorization: `Bearer ${avToken}` }
+        })
+        if (avRes.ok) {
+          const { data: avData } = await avRes.json()
+          const counts: { [date: string]: { count: number, names: string[] } } = {}
+          const perPlayer: Record<string, string[]> = {}
+          ;(avData || []).forEach((a: any) => {
+            if (!counts[a.date]) counts[a.date] = { count: 0, names: [] }
+            counts[a.date].count++
+            const name = a.profiles?.nickname?.trim() || a.profiles?.full_name
+            if (name) counts[a.date].names.push(name)
+            if (a.user_id) {
+              if (!perPlayer[a.user_id]) perPlayer[a.user_id] = []
+              perPlayer[a.user_id].push(a.date)
+            }
+          })
+          setAvailability(Object.entries(counts).map(([date, { count, names }]) => ({ date, count, names })).sort((a, b) => b.count - a.count))
+          setPlayerDates(perPlayer)
+        }
+      }
+    } catch {}
+
+    try {
+      const { data: tdRow } = await supabase.from('tournament_settings').select('value').eq('key', 'tournament_date').maybeSingle()
+      if (tdRow?.value) setTournamentDate(tdRow.value)
+    } catch {}
 
     const { data: tm } = await supabase.from('teams').select('*, team_members(*, profiles(*))').eq('tournament_year', CURRENT_YEAR)
     setTeams(tm || [])
@@ -148,6 +173,18 @@ export default function AdminPage() {
     setTimeout(() => setMessage(''), 3000)
   }
 
+  const handleSetTournamentDate = async (dateStr: string) => {
+    setSettingDate(true)
+    if (dateStr) {
+      await supabase.from('tournament_settings').upsert({ key: 'tournament_date', value: dateStr })
+      setTournamentDate(dateStr)
+    } else {
+      await supabase.from('tournament_settings').delete().eq('key', 'tournament_date')
+      setTournamentDate(null)
+    }
+    setSettingDate(false)
+  }
+
   const tabs = [
     { key: 'availability', label: 'Date Poll' },
     { key: 'players', label: 'Players' },
@@ -182,34 +219,82 @@ export default function AdminPage() {
 
       {/* DATE POLL TAB */}
       {tab === 'availability' && (
-        <div className="card">
-          <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Date Poll Results — {CURRENT_YEAR}</h2>
-          {availability.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>No responses yet</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {availability.map(({ date, count, names }) => (
-                <div key={date} style={{ background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, flex: 1 }}>
-                      {format(new Date(date + 'T12:00:00'), 'EEE, MMM d yyyy')}
-                    </span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--gold)' }}>{count}/{players.length}</span>
-                  </div>
-                  <div style={{ width: '100%', height: '6px', background: 'var(--navy-border)', borderRadius: '999px', marginBottom: '0.75rem' }}>
-                    <div style={{ height: '100%', borderRadius: '999px', background: 'var(--gold)', width: (count / Math.max(players.length, 1) * 100) + '%', transition: 'width 0.5s' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                    {(names || []).map((name: string) => (
-                      <span key={name} style={{ padding: '0.2rem 0.65rem', borderRadius: '999px', fontSize: '0.78rem', background: 'rgba(201,168,76,0.1)', color: 'var(--gold)', border: '1px solid rgba(201,168,76,0.2)' }}>
-                        {name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {tournamentDate && (
+            <div style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '1.25rem', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>📅</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: '0.15rem' }}>TOURNAMENT DATE SET</p>
+                <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--gold)' }}>
+                  {format(new Date(tournamentDate + 'T12:00:00'), 'EEEE, MMMM d, yyyy')}
+                </p>
+              </div>
+              <button onClick={() => handleSetTournamentDate('')} disabled={settingDate} style={{ padding: '0.35rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', color: '#ff8f8f' }}>
+                {settingDate ? '...' : 'Unset'}
+              </button>
             </div>
           )}
+
+          <div className="card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h2 style={{ fontSize: '1.3rem' }}>Date Poll Results — {CURRENT_YEAR}</h2>
+              {availability.length > 0 && (
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', background: 'var(--navy-light)', padding: '0.25rem 0.75rem', borderRadius: '999px' }}>
+                  {players.length} players · {availability.length} date{availability.length !== 1 ? 's' : ''} voted
+                </span>
+              )}
+            </div>
+            {availability.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>No responses yet</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {availability.map(({ date, count, names }, idx) => {
+                  const pct = players.length > 0 ? Math.round((count / players.length) * 100) : 0
+                  const barPct = (count / Math.max(availability[0]?.count || 1, 1)) * 100
+                  const isChosen = tournamentDate === date
+                  const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null
+
+                  return (
+                    <div key={date} style={{
+                      background: isChosen ? 'rgba(201,168,76,0.1)' : idx === 0 ? 'rgba(201,168,76,0.05)' : 'var(--navy-light)',
+                      border: isChosen ? '1px solid rgba(201,168,76,0.35)' : '1px solid transparent',
+                      borderRadius: '1rem', padding: '0.875rem 1.125rem',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: medal ? '1.1rem' : '0.78rem', width: '24px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 700, flexShrink: 0 }}>
+                          {isChosen ? '📅' : medal || (idx + 1)}
+                        </span>
+                        <span style={{ fontWeight: 700, fontSize: '0.9rem', color: isChosen || idx === 0 ? 'var(--gold)' : 'var(--white)', flex: 1 }}>
+                          {format(new Date(date + 'T12:00:00'), 'EEE, MMM d, yyyy')}
+                          {isChosen && <span style={{ marginLeft: '0.5rem', fontSize: '0.68rem', letterSpacing: '0.06em', background: 'rgba(201,168,76,0.15)', padding: '0.1rem 0.5rem', borderRadius: '999px' }}>TOURNAMENT DATE</span>}
+                        </span>
+                        <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--gold)', flexShrink: 0 }}>{count} <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.78rem' }}>({pct}%)</span></span>
+                        <button
+                          onClick={() => handleSetTournamentDate(isChosen ? '' : date)}
+                          disabled={settingDate}
+                          style={{ padding: '0.3rem 0.7rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, background: isChosen ? 'rgba(255,107,107,0.1)' : 'rgba(201,168,76,0.12)', border: isChosen ? '1px solid rgba(255,107,107,0.3)' : '1px solid rgba(201,168,76,0.3)', color: isChosen ? '#ff8f8f' : 'var(--gold)' }}
+                        >
+                          {settingDate ? '...' : isChosen ? 'Unset' : 'Set Date'}
+                        </button>
+                      </div>
+                      <div style={{ paddingLeft: '32px' }}>
+                        <div style={{ height: '5px', background: 'rgba(61,50,32,0.5)', borderRadius: '999px', overflow: 'hidden', marginBottom: '0.6rem' }}>
+                          <div style={{ height: '100%', borderRadius: '999px', width: `${barPct}%`, background: isChosen || idx === 0 ? 'var(--gold)' : 'rgba(201,168,76,0.45)', transition: 'width 0.5s ease' }} />
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                          {(names || []).map((name: string) => (
+                            <span key={name} style={{ padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.76rem', background: 'rgba(201,168,76,0.08)', color: 'rgba(201,168,76,0.8)', border: '1px solid rgba(201,168,76,0.15)' }}>
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -224,12 +309,23 @@ export default function AdminPage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {players.map(p => (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
-                <div>
-                  <p style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{p.full_name}</p>
+              <div key={p.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{getDisplayName(p)}</p>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                     {p.email} · HCP: {p.handicap ?? 'N/A'} {p.ghin_number ? '· GHIN: ' + p.ghin_number : ''}
                   </p>
+                  {(playerDates[p.id] || []).length > 0 ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.5rem' }}>
+                      {[...(playerDates[p.id] || [])].sort().map(date => (
+                        <span key={date} style={{ padding: '0.15rem 0.55rem', borderRadius: '999px', fontSize: '0.72rem', background: 'rgba(201,168,76,0.08)', color: 'rgba(201,168,76,0.75)', border: '1px solid rgba(201,168,76,0.15)' }}>
+                          {format(new Date(date + 'T12:00:00'), 'MMM d')}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '0.75rem', color: 'rgba(139,125,107,0.5)', marginTop: '0.4rem', fontStyle: 'italic' }}>No dates selected</p>
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   {registeredIds.has(p.id) && (
