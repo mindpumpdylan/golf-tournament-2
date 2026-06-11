@@ -21,6 +21,14 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 900)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -64,7 +72,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </Link>
 
           {/* Desktop nav links */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.1rem' }} className="hidden md:flex">
+          <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: '0.1rem' }}>
             {navItems.map(item => {
               const active = pathname === item.href
               return (
@@ -95,11 +103,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
             {/* Avatar pill — desktop only */}
             <Link href="/portal/account" style={{
-              display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none',
+              display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none',
               padding: '0.35rem 0.75rem', borderRadius: '999px',
               background: 'var(--card-mid)', border: '1px solid var(--border)',
               transition: 'all 0.15s',
-            }} className="hidden md:flex">
+            }}>
               <div style={{ width: '22px', height: '22px', borderRadius: '999px', overflow: 'hidden', flexShrink: 0, background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700, color: '#0d0f0a' }}>
                 {profile?.avatar_url
                   ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -116,10 +124,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               aria-label="Toggle menu"
               style={{
                 background: 'none', border: 'none', color: 'var(--cream)', cursor: 'pointer',
-                padding: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '0.35rem', display: isMobile ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center',
                 borderRadius: '0.5rem',
               }}
-              className="md:hidden"
             >
               {/* Animated hamburger / X */}
               <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
