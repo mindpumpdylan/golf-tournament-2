@@ -7,20 +7,29 @@ export async function POST(req: NextRequest) {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
   const link = `${siteUrl}/signup?token=${token}`
 
+  // NOTE: Change 'onboarding@resend.dev' to a verified domain in your Resend account
+  // (e.g. 'noreply@highcountryclassic.com') before going to production.
+  // The sandbox domain only delivers to verified email addresses.
   await resend.emails.send({
     from: 'High Country Classic <onboarding@resend.dev>',
     to: email,
-    subject: `${inviter} invited you to the High Country Classic!`,
+    subject: `You're invited to the High Country Classic! ⛳`,
     html: `
-      <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; background: #0a0a1a; color: white; padding: 2rem; border-radius: 1rem;">
-        <h2 style="color: #00ff87; margin-bottom: 1rem;">You're invited! ⛳</h2>
+      <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; background: #0d0f0a; color: #f0e6cc; padding: 2rem; border-radius: 1rem; border: 1px solid #3d3220;">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <div style="font-size: 2.5rem;">⛳</div>
+          <h1 style="color: #c9a84c; margin: 0.5rem 0 0; font-size: 1.5rem;">High Country Classic</h1>
+          <p style="color: #8b7d6b; font-size: 0.85rem; margin: 0.25rem 0 0;">Apple Mountain Golf Resort</p>
+        </div>
         <p style="margin-bottom: 0.75rem;">Hi ${name},</p>
-        <p style="margin-bottom: 0.75rem;"><strong>${inviter}</strong> has reserved a spot for you in the High Country Classic at Apple Mountain Golf Resort.</p>
-        <p style="margin-bottom: 1.5rem;">You have <strong>10 days</strong> to create your account and claim your spot before it opens to the waitlist.</p>
-        <a href="${link}" style="display:inline-block;background:#00ff87;color:#0a0a1a;padding:1rem 2rem;border-radius:1rem;text-decoration:none;font-weight:700;font-size:1rem;">
-          Claim My Spot →
-        </a>
-        <p style="color:#8899aa;font-size:0.8rem;margin-top:2rem;">If you weren't expecting this invite, you can ignore this email.</p>
+        <p style="margin-bottom: 0.75rem;"><strong style="color: #c9a84c;">${inviter}</strong> has reserved a spot for you in the High Country Classic golf tournament.</p>
+        <p style="margin-bottom: 1.5rem; color: #8b7d6b;">You have <strong style="color: #f0e6cc;">10 days</strong> to create your account and claim your spot. After that, the spot may open to others.</p>
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <a href="${link}" style="display:inline-block;background:#c9a84c;color:#0d0f0a;padding:1rem 2rem;border-radius:0.875rem;text-decoration:none;font-weight:700;font-size:1rem;">
+            Claim My Spot →
+          </a>
+        </div>
+        <p style="color: #8b7d6b; font-size: 0.8rem; border-top: 1px solid #3d3220; padding-top: 1rem; margin: 0;">If you weren't expecting this invite, you can ignore this email.</p>
       </div>
     `
   })

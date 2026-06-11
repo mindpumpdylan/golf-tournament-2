@@ -21,6 +21,7 @@ export type Reservation = {
   player_id: string | null
   guest_name: string
   guest_email: string
+  guest_phone: string | null
   status: 'pending' | 'confirmed' | 'expired'
   invite_token: string | null
   invite_expires_at: string | null

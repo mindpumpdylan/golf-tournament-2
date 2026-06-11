@@ -444,28 +444,71 @@ export default function AdminPage() {
 
 function ReservationsAdmin() {
   const [reservations, setReservations] = useState<any[]>([])
+  const [signedUpEmails, setSignedUpEmails] = useState<Set<string>>(new Set())
+  const [sendingId, setSendingId] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [smsCopiedId, setSmsCopiedId] = useState<string | null>(null)
+  const [sendMsg, setSendMsg] = useState<{ id: string; ok: boolean; text: string } | null>(null)
 
-  useEffect(() => {
-    supabase.from('reservations')
-      .select('*, reserver:profiles!reserver_id(full_name, email)')
+  const load = async () => {
+    const { data } = await supabase.from('reservations')
+      .select('*, reserver:profiles!reserver_id(full_name)')
       .order('created_at', { ascending: false })
-      .then(({ data }) => setReservations(data || []))
-  }, [])
+    const list = data || []
+    setReservations(list)
+    const emails = list.filter((r: any) => r.guest_email).map((r: any) => r.guest_email)
+    if (emails.length > 0) {
+      const { data: profs } = await supabase.from('profiles').select('email').in('email', emails)
+      setSignedUpEmails(new Set(profs?.map((p: any) => p.email) || []))
+    }
+  }
+
+  useEffect(() => { load() }, [])
+
+  const handleSendInvite = async (r: any) => {
+    setSendingId(r.id)
+    const token = Math.random().toString(36).substring(2, 15)
+    const expires = new Date(); expires.setDate(expires.getDate() + 10)
+    await supabase.from('reservations').update({ invite_token: token, invite_expires_at: expires.toISOString(), status: 'pending' }).eq('id', r.id)
+    let emailOk = false
+    if (r.guest_email) {
+      const res = await fetch('/api/invite', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: r.guest_email, name: r.guest_name, token, inviter: 'High Country Classic' })
+      })
+      emailOk = res.ok
+    }
+    setSendMsg({ id: r.id, ok: emailOk || !r.guest_email, text: r.guest_email ? (emailOk ? `Invite emailed to ${r.guest_name}!` : 'Email failed — use Copy Link to share manually.') : 'Link generated — use Copy Link or Copy SMS to share.' })
+    setTimeout(() => setSendMsg(null), 5000)
+    setSendingId(null)
+    load()
+  }
 
   const handleExpire = async (id: string) => {
     await supabase.from('reservations').update({ status: 'expired' }).eq('id', id)
-    setReservations(prev => prev.map(r => r.id === id ? { ...r, status: 'expired' } : r))
+    load()
   }
 
-  const handleConfirm = async (id: string) => {
-    await supabase.from('reservations').update({ status: 'confirmed' }).eq('id', id)
-    setReservations(prev => prev.map(r => r.id === id ? { ...r, status: 'confirmed' } : r))
+  const handleCopyLink = (r: any) => {
+    const url = `${window.location.origin}/signup?token=${r.invite_token}`
+    navigator.clipboard.writeText(url)
+    setCopiedId(r.id); setTimeout(() => setCopiedId(null), 2000)
   }
 
-  const statusStyle = (status: string) => {
-    if (status === 'confirmed') return { background: 'rgba(201,168,76,0.1)', color: 'var(--gold)', border: '1px solid rgba(201,168,76,0.25)' }
-    if (status === 'expired') return { background: 'rgba(255,107,107,0.1)', color: '#ff6b6b', border: '1px solid rgba(255,107,107,0.2)' }
-    return { background: 'rgba(240,230,204,0.07)', color: 'var(--cream)', border: '1px solid rgba(240,230,204,0.15)' }
+  const handleCopySms = (r: any) => {
+    const url = `${window.location.origin}/signup?token=${r.invite_token}`
+    const msg = `Hey ${r.guest_name}! You're invited to the High Country Classic at Apple Mountain Golf Resort. Sign up here: ${url}`
+    navigator.clipboard.writeText(msg)
+    setSmsCopiedId(r.id); setTimeout(() => setSmsCopiedId(null), 2000)
+  }
+
+  const getBadge = (r: any) => {
+    const signedup = r.guest_email && signedUpEmails.has(r.guest_email)
+    if (signedup) return { label: '✓ Signed Up', bg: 'rgba(201,168,76,0.15)', color: '#e8c97a', border: 'rgba(201,168,76,0.4)' }
+    if (!r.invite_token) return { label: '🎟 Reserved', bg: 'rgba(139,127,107,0.1)', color: '#8b7d6b', border: 'rgba(61,50,32,0.5)' }
+    if (r.status === 'pending') return { label: 'Invite Sent', bg: 'rgba(240,230,204,0.07)', color: '#f0e6cc', border: 'rgba(240,230,204,0.15)' }
+    if (r.status === 'expired') return { label: 'Expired', bg: 'rgba(255,107,107,0.1)', color: '#ff6b6b', border: 'rgba(255,107,107,0.25)' }
+    return { label: r.status, bg: 'rgba(201,168,76,0.1)', color: 'var(--gold)', border: 'rgba(201,168,76,0.25)' }
   }
 
   return (
@@ -475,35 +518,74 @@ function ReservationsAdmin() {
         <p style={{ color: 'var(--text-muted)' }}>No reservations yet</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {reservations.map(r => (
-            <div key={r.id} style={{ background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <div>
-                  <p style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{r.guest_name}</p>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>{r.guest_email}</p>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Invited by: <span style={{ color: 'var(--white)' }}>{r.reserver?.full_name || 'Unknown'}</span>
-                  </p>
-                  {r.invite_expires_at && (
-                    <p style={{ fontSize: '0.8rem', color: 'var(--gold)', marginTop: '0.2rem' }}>
-                      Expires: {new Date(r.invite_expires_at).toLocaleDateString()}
+          {reservations.map(r => {
+            const badge = getBadge(r)
+            const signedUp = r.guest_email && signedUpEmails.has(r.guest_email)
+            const hasToken = !!r.invite_token
+            const isMsg = sendMsg?.id === r.id
+            return (
+              <div key={r.id} style={{ background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem', border: signedUp ? '1px solid rgba(201,168,76,0.2)' : '1px solid transparent' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <div>
+                    <p style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{r.guest_name}</p>
+                    {r.guest_email && <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{r.guest_email}</p>}
+                    {r.guest_phone && (
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
+                        <a href={`tel:${r.guest_phone}`} style={{ color: 'var(--gold)', textDecoration: 'none' }}>{r.guest_phone}</a>
+                      </p>
+                    )}
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                      Invited by <span style={{ color: 'var(--white)' }}>{r.reserver?.full_name || 'Unknown'}</span>
+                      {r.invite_expires_at && !signedUp && r.status === 'pending' && (
+                        <span> · Expires {new Date(r.invite_expires_at).toLocaleDateString()}</span>
+                      )}
                     </p>
-                  )}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <span style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'capitalize', ...statusStyle(r.status) }}>
-                    {r.status}
+                  </div>
+                  <span style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700, whiteSpace: 'nowrap', background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                    {badge.label}
                   </span>
-                  {r.status === 'pending' && (
-                    <>
-                      <button onClick={() => handleConfirm(r.id)} className="btn-electric" style={{ padding: '0.4rem 0.875rem', fontSize: '0.8rem' }}>Confirm</button>
-                      <button onClick={() => handleExpire(r.id)} style={{ padding: '0.4rem 0.875rem', fontSize: '0.8rem', background: 'none', border: '1px solid #ff6b6b', color: '#ff6b6b', borderRadius: '0.75rem', cursor: 'pointer' }}>Expire</button>
-                    </>
-                  )}
                 </div>
+
+                {isMsg && (
+                  <p style={{ marginTop: '0.6rem', fontSize: '0.8rem', color: sendMsg.ok ? 'var(--gold)' : '#ff8f8f' }}>{sendMsg.text}</p>
+                )}
+
+                {!signedUp && (
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.875rem', flexWrap: 'wrap' }}>
+                    {/* Send / Resend invite */}
+                    <button
+                      onClick={() => handleSendInvite(r)}
+                      disabled={sendingId === r.id}
+                      style={{ padding: '0.35rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)', color: 'var(--gold)' }}
+                    >
+                      {sendingId === r.id ? 'Sending...' : hasToken ? '✉ Resend Invite' : '✉ Send Invite'}
+                    </button>
+
+                    {/* Copy link — only if token exists */}
+                    {hasToken && (
+                      <button onClick={() => handleCopyLink(r)} style={{ padding: '0.35rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'transparent', border: '1px solid var(--navy-border)', color: 'var(--text-muted)' }}>
+                        {copiedId === r.id ? '✓ Copied!' : '🔗 Copy Link'}
+                      </button>
+                    )}
+
+                    {/* Copy SMS — if phone + token */}
+                    {hasToken && r.guest_phone && (
+                      <button onClick={() => handleCopySms(r)} style={{ padding: '0.35rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'transparent', border: '1px solid var(--navy-border)', color: 'var(--text-muted)' }}>
+                        {smsCopiedId === r.id ? '✓ Copied!' : '💬 Copy SMS'}
+                      </button>
+                    )}
+
+                    {/* Expire — only for pending */}
+                    {r.status === 'pending' && hasToken && (
+                      <button onClick={() => handleExpire(r.id)} style={{ padding: '0.35rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'none', border: '1px solid rgba(255,107,107,0.3)', color: '#ff6b6b', marginLeft: 'auto' }}>
+                        Expire
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

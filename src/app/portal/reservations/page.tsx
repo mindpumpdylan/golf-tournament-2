@@ -67,7 +67,7 @@ export default function ReservationsPage() {
   const [players, setPlayers] = useState<Profile[]>([])
   const [showForm, setShowForm] = useState(false)
   const [inviteMode, setInviteMode] = useState<'invite' | 'reserve'>('invite')
-  const [form, setForm] = useState({ guest_name: '', guest_email: '', pairing_preference: '' })
+  const [form, setForm] = useState({ guest_name: '', guest_email: '', guest_phone: '', pairing_preference: '' })
   const [handicap, setHandicap] = useState('')
   const [ghin, setGhin] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -151,6 +151,7 @@ export default function ReservationsPage() {
         reserver_id: session.user.id,
         guest_name: form.guest_name,
         guest_email: form.guest_email || null,
+        guest_phone: form.guest_phone || null,
         pairing_preference: form.pairing_preference || null,
         status: 'confirmed',
         invite_token: null,
@@ -161,7 +162,7 @@ export default function ReservationsPage() {
         setSubmitting(false)
         return
       }
-      setForm({ guest_name: '', guest_email: '', pairing_preference: '' })
+      setForm({ guest_name: '', guest_email: '', guest_phone: '', pairing_preference: '' })
       setShowForm(false)
       showMsg(`Spot reserved for ${form.guest_name}!`)
       load()
@@ -176,6 +177,7 @@ export default function ReservationsPage() {
       reserver_id: session.user.id,
       guest_name: form.guest_name,
       guest_email: form.guest_email,
+      guest_phone: form.guest_phone || null,
       pairing_preference: form.pairing_preference || null,
       status: 'pending',
       invite_token: token,
@@ -190,7 +192,7 @@ export default function ReservationsPage() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: form.guest_email, name: form.guest_name, token, inviter: profile?.full_name })
     })
-    setForm({ guest_name: '', guest_email: '', pairing_preference: '' })
+    setForm({ guest_name: '', guest_email: '', guest_phone: '', pairing_preference: '' })
     setShowForm(false)
     showMsg(
       apiRes.ok
@@ -417,6 +419,10 @@ export default function ReservationsPage() {
               </div>
             </div>
             <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: MUTED, marginBottom: '0.5rem', letterSpacing: '0.05em' }}>PHONE <span style={{ color: MUTED, fontWeight: 400, fontSize: '0.75rem' }}>(optional — for texting the link)</span></label>
+              <input className="input" type="tel" value={form.guest_phone} onChange={e => setForm({ ...form, guest_phone: e.target.value })} placeholder="(555) 555-5555" />
+            </div>
+            <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: MUTED, marginBottom: '0.5rem', letterSpacing: '0.05em' }}>ADDITIONAL PAIRING PREFERENCE (optional)</label>
               <select className="input" value={form.pairing_preference} onChange={e => setForm({ ...form, pairing_preference: e.target.value })}>
                 <option value="">No preference — pair me with my guest</option>
@@ -455,6 +461,7 @@ export default function ReservationsPage() {
                       <p style={{ fontWeight: 700, color: CREAM, marginBottom: '0.2rem' }}>{r.guest_name}</p>
                       {r.guest_email && <p style={{ fontSize: '0.83rem', color: MUTED }}>{r.guest_email}</p>}
                       {!r.guest_email && <p style={{ fontSize: '0.83rem', color: MUTED, fontStyle: 'italic' }}>No email provided</p>}
+                      {r.guest_phone && <p style={{ fontSize: '0.8rem', color: MUTED }}>{r.guest_phone}</p>}
 
                       {/* Status sub-text */}
                       {isWalkin && (
