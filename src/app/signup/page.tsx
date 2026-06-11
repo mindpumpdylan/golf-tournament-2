@@ -43,10 +43,10 @@ function SignupForm() {
   }
 
   const fields = [
-    { label: 'FULL NAME', key: 'full_name', type: 'text', placeholder: 'John Smith' },
-    { label: 'EMAIL', key: 'email', type: 'email', placeholder: 'you@email.com' },
-    { label: 'PASSWORD', key: 'password', type: 'password', placeholder: '••••••••' },
-    { label: 'CONFIRM PASSWORD', key: 'confirm', type: 'password', placeholder: '••••••••' },
+    { label: 'FULL NAME', key: 'full_name', type: 'text', placeholder: 'John Smith', autoComplete: 'name' },
+    { label: 'EMAIL', key: 'email', type: 'email', placeholder: 'you@email.com', autoComplete: 'email' },
+    { label: 'PASSWORD', key: 'password', type: 'password', placeholder: '••••••••', autoComplete: 'new-password' },
+    { label: 'CONFIRM PASSWORD', key: 'confirm', type: 'password', placeholder: '••••••••', autoComplete: 'new-password' },
   ]
 
   return (
@@ -79,6 +79,7 @@ function SignupForm() {
               <div key={f.key}>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.08em' }}>{f.label}</label>
                 <input className="input" type={f.type} placeholder={f.placeholder}
+                  autoComplete={f.autoComplete}
                   value={form[f.key as keyof typeof form]}
                   onChange={e => setForm({ ...form, [f.key]: e.target.value })} required />
               </div>
