@@ -180,7 +180,7 @@ export default function PortalHome() {
           muted
           playsInline
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
-          src="/High%20country%20classic.mp4"
+          src="/hero.mp4"
         />
         {/* Gradient overlay */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(rgba(0,0,0,0.52), rgba(0,0,0,0.68))', zIndex: 1 }} />
