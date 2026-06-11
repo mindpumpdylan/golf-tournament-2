@@ -29,15 +29,27 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     })
   }, [router])
 
+  // Close drawer on route change
+  useEffect(() => { setMenuOpen(false) }, [pathname])
+
+  // Prevent body scroll when drawer is open
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [menuOpen])
+
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/login')
   }
 
+  const close = () => setMenuOpen(false)
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+
+      {/* Nav bar */}
       <nav style={{ background: 'var(--card)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 50 }}>
-        {/* Gold top accent line */}
         <div style={{ height: '2px', background: 'linear-gradient(90deg, transparent, var(--gold-dim), var(--gold), var(--gold-dim), transparent)' }} />
 
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '60px' }}>
@@ -50,7 +62,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             </span>
           </Link>
 
-          {/* Desktop nav */}
+          {/* Desktop nav links */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.1rem' }} className="hidden md:flex">
             {navItems.map(item => {
               const active = pathname === item.href
@@ -80,6 +92,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
           {/* Right side */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+            {/* Avatar pill — desktop only */}
             <Link href="/portal/account" style={{
               display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none',
               padding: '0.35rem 0.75rem', borderRadius: '999px',
@@ -94,6 +107,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               </span>
             </Link>
 
+            {/* Sign out — desktop only */}
             <button onClick={handleSignOut} style={{
               padding: '0.4rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.75rem', fontWeight: 700,
               background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)',
@@ -102,43 +116,151 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               SIGN OUT
             </button>
 
-            <button onClick={() => setMenuOpen(!menuOpen)} style={{ background: 'none', border: 'none', color: 'var(--cream)', fontSize: '1.5rem', cursor: 'pointer', padding: '0.25rem' }} className="md:hidden">
-              {menuOpen ? '✕' : '☰'}
+            {/* Hamburger — mobile only */}
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              aria-label="Toggle menu"
+              style={{
+                background: 'none', border: 'none', color: 'var(--cream)', cursor: 'pointer',
+                padding: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderRadius: '0.5rem',
+              }}
+              className="md:hidden"
+            >
+              {/* Animated hamburger / X */}
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                {menuOpen ? (
+                  <>
+                    <line x1="4" y1="4" x2="18" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="18" y1="4" x2="4" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </>
+                ) : (
+                  <>
+                    <line x1="3" y1="6" x2="19" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="3" y1="11" x2="19" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <line x1="3" y1="16" x2="19" y2="16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </>
+                )}
+              </svg>
             </button>
           </div>
         </div>
+      </nav>
 
-        {/* Mobile menu */}
-        {menuOpen && (
-          <div style={{ borderTop: '1px solid var(--border)', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', background: 'var(--card)' }}>
-            {navItems.map(item => (
-              <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} style={{
-                padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight: 600,
-                textDecoration: 'none', letterSpacing: '0.05em',
-                color: pathname === item.href ? 'var(--gold)' : 'var(--cream)',
-                background: pathname === item.href ? 'rgba(201,168,76,0.08)' : 'transparent',
-              }}>
+      {/* Backdrop */}
+      <div
+        onClick={close}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 98,
+          background: 'rgba(0,0,0,0.55)',
+          backdropFilter: 'blur(3px)',
+          opacity: menuOpen ? 1 : 0,
+          pointerEvents: menuOpen ? 'auto' : 'none',
+          transition: 'opacity 0.25s ease',
+        }}
+      />
+
+      {/* Slide-in drawer */}
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 99,
+        width: '280px', maxWidth: '85vw',
+        background: '#111a0f',
+        borderLeft: '1px solid #3d3220',
+        display: 'flex', flexDirection: 'column',
+        transform: menuOpen ? 'translateX(0)' : 'translateX(100%)',
+        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        overflowY: 'auto',
+        boxShadow: menuOpen ? '-8px 0 32px rgba(0,0,0,0.6)' : 'none',
+      }}>
+        {/* Drawer header */}
+        <div style={{ padding: '1.25rem 1.25rem 1rem', borderBottom: '1px solid #3d3220', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '999px', background: '#c9a84c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: '#0d0f0a' }}>
+              {profile?.full_name?.charAt(0) || '?'}
+            </div>
+            <div>
+              <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f0e6cc', lineHeight: 1 }}>{profile?.full_name?.split(' ')[0]}</p>
+              <p style={{ fontSize: '0.7rem', color: '#8b7d6b', marginTop: '0.15rem' }}>Player</p>
+            </div>
+          </div>
+          <button onClick={close} style={{ background: 'none', border: 'none', color: '#8b7d6b', cursor: 'pointer', padding: '0.25rem', fontSize: '1rem' }}>✕</button>
+        </div>
+
+        {/* Nav links */}
+        <div style={{ flex: 1, padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          {navItems.map(item => {
+            const active = pathname === item.href
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={close}
+                style={{
+                  padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 600,
+                  textDecoration: 'none', letterSpacing: '0.06em', transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', gap: '0.75rem',
+                  color: active ? '#c9a84c' : '#f0e6cc',
+                  background: active ? 'rgba(201,168,76,0.1)' : 'transparent',
+                  border: active ? '1px solid rgba(201,168,76,0.2)' : '1px solid transparent',
+                }}
+              >
+                <span style={{ fontSize: '1rem' }}>{NAV_ICONS[item.href] || '•'}</span>
                 {item.label.toUpperCase()}
               </Link>
-            ))}
-            <Link href="/portal/account" onClick={() => setMenuOpen(false)} style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none', color: 'var(--cream)', letterSpacing: '0.05em' }}>
-              MY ACCOUNT
+            )
+          })}
+
+          <Link href="/portal/account" onClick={close} style={{
+            padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 600,
+            textDecoration: 'none', letterSpacing: '0.06em', transition: 'all 0.15s',
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            color: pathname === '/portal/account' ? '#c9a84c' : '#f0e6cc',
+            background: pathname === '/portal/account' ? 'rgba(201,168,76,0.1)' : 'transparent',
+            border: pathname === '/portal/account' ? '1px solid rgba(201,168,76,0.2)' : '1px solid transparent',
+          }}>
+            <span style={{ fontSize: '1rem' }}>👤</span>
+            MY ACCOUNT
+          </Link>
+
+          {profile?.is_admin && (
+            <Link href="/portal/admin" onClick={close} style={{
+              padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 700,
+              textDecoration: 'none', letterSpacing: '0.06em',
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              color: '#c9a84c', background: 'rgba(201,168,76,0.08)',
+              border: '1px solid rgba(201,168,76,0.2)',
+            }}>
+              <span style={{ fontSize: '1rem' }}>⚙️</span>
+              ADMIN
             </Link>
-            {profile?.is_admin && (
-              <Link href="/portal/admin" onClick={() => setMenuOpen(false)} style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight: 700, textDecoration: 'none', color: 'var(--gold)', background: 'rgba(201,168,76,0.08)', letterSpacing: '0.05em' }}>
-                ADMIN
-              </Link>
-            )}
-            <button onClick={handleSignOut} style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight: 600, background: 'none', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', textAlign: 'left', marginTop: '0.5rem', letterSpacing: '0.05em' }}>
-              SIGN OUT
-            </button>
-          </div>
-        )}
-      </nav>
+          )}
+        </div>
+
+        {/* Drawer footer */}
+        <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #3d3220' }}>
+          <button onClick={handleSignOut} style={{
+            width: '100%', padding: '0.75rem', borderRadius: '0.875rem', fontSize: '0.82rem', fontWeight: 700,
+            background: 'rgba(255,107,107,0.07)', border: '1px solid rgba(255,107,107,0.2)',
+            color: '#ff8f8f', cursor: 'pointer', letterSpacing: '0.06em', transition: 'all 0.15s',
+          }}>
+            SIGN OUT
+          </button>
+        </div>
+      </div>
 
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1rem' }}>
         {children}
       </main>
     </div>
   )
+}
+
+const NAV_ICONS: Record<string, string> = {
+  '/portal': '🏠',
+  '/portal/availability': '📅',
+  '/portal/reservations': '🎟',
+  '/portal/tournament': '🏆',
+  '/portal/scorecard': '📋',
+  '/portal/pin': '📍',
+  '/portal/gallery': '📷',
 }
