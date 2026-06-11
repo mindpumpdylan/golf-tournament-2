@@ -36,6 +36,7 @@ export default function PortalHome() {
   const [myGuestCount, setMyGuestCount] = useState(0)
   const [isRegistered, setIsRegistered] = useState(true)
   const [registering, setRegistering] = useState(false)
+  const [tournamentStatus, setTournamentStatus] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -45,10 +46,10 @@ export default function PortalHome() {
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', uid).single()
       setProfile(prof)
 
-      const { data: avail } = await supabase.from('availability_dates').select('id').eq('user_id', uid).limit(1)
+      const { data: avail } = await supabase.from('availability_dates').select('id').eq('user_id', uid).eq('tournament_year', CURRENT_YEAR).limit(1)
       setHasSetAvailability(!!(avail && avail.length > 0))
 
-      const { data: allDates } = await supabase.from('availability_dates').select('date')
+      const { data: allDates } = await supabase.from('availability_dates').select('date').eq('tournament_year', CURRENT_YEAR)
       if (allDates) {
         const counts: { [date: string]: number } = {}
         allDates.forEach((d: any) => { counts[d.date] = (counts[d.date] || 0) + 1 })
@@ -92,6 +93,11 @@ export default function PortalHome() {
       const { data: reg } = await supabase.from('tournament_registrations').select('id').eq('player_id', uid).eq('tournament_year', CURRENT_YEAR).maybeSingle()
       setIsRegistered(!!reg)
 
+      try {
+        const { data: statusRow } = await supabase.from('tournament_settings').select('value').eq('key', 'status').maybeSingle()
+        if (statusRow?.value) setTournamentStatus(statusRow.value)
+      } catch {}
+
       setLoading(false)
     })
   }, [])
@@ -108,8 +114,23 @@ export default function PortalHome() {
   const myTotal = myScores.reduce((sum, s) => sum + s.strokes, 0)
   const widgetStyle: React.CSSProperties = { ...CARD, cursor: 'pointer', transition: 'all 0.2s', minHeight: '180px', display: 'flex', flexDirection: 'column' }
 
+  const STATUS_BANNERS: Record<string, { text: string; color: string; border: string; bg: string }> = {
+    'registration-open':  { text: `✅ Registration Open — Confirm your spot in the ${CURRENT_YEAR} High Country Classic!`, color: GOLD, border: 'rgba(201,168,76,0.3)', bg: 'rgba(201,168,76,0.07)' },
+    'pairings-released':  { text: '🏌️ Pairings Released — Check the Tournament page for your team and tee time!', color: GOLD, border: 'rgba(201,168,76,0.3)', bg: 'rgba(201,168,76,0.07)' },
+    'tournament-day':     { text: '⛳ It\'s Tournament Day — Good luck out there! Enter scores in real time.', color: '#e8c97a', border: 'rgba(201,168,76,0.45)', bg: 'rgba(201,168,76,0.12)' },
+    'scoring-complete':   { text: '✓ Scoring Complete — Results are being finalized. Check the leaderboard!', color: CREAM, border: 'rgba(240,230,204,0.2)', bg: 'rgba(240,230,204,0.05)' },
+    'results-final':      { text: '🏆 Results Final — Congratulations to all competitors! Official results are posted.', color: GOLD, border: 'rgba(201,168,76,0.35)', bg: 'rgba(201,168,76,0.09)' },
+  }
+  const statusBanner = STATUS_BANNERS[tournamentStatus]
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+      {statusBanner && !loading && (
+        <div style={{ background: statusBanner.bg, border: `1px solid ${statusBanner.border}`, borderRadius: '1.25rem', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <p style={{ fontWeight: 600, fontSize: '0.9rem', color: statusBanner.color }}>{statusBanner.text}</p>
+        </div>
+      )}
 
       {!isRegistered && !loading && (
         <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '1.5rem', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
@@ -147,7 +168,11 @@ export default function PortalHome() {
         <p style={{ color: 'rgba(240,230,204,0.45)', fontSize: '0.8rem', marginBottom: '1.5rem', letterSpacing: '0.1em' }}>{COURSE_LOCATION.toUpperCase()}</p>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <span style={{ background: 'rgba(201,168,76,0.12)', color: GOLD, border: '1px solid rgba(201,168,76,0.25)', borderRadius: '999px', padding: '0.4rem 1.25rem', fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.1em' }}>{CURRENT_YEAR} SEASON</span>
-          {profile && <span style={{ color: 'rgba(240,230,204,0.7)', fontSize: '0.9rem' }}>Welcome back, <span style={{ color: GOLD, fontWeight: 700 }}>{profile.full_name?.split(' ')[0]}</span></span>}
+          {loading ? (
+            <span style={{ color: 'rgba(240,230,204,0.45)', fontSize: '0.9rem' }}>Welcome back!</span>
+          ) : profile ? (
+            <span style={{ color: 'rgba(240,230,204,0.7)', fontSize: '0.9rem' }}>Welcome back, <span style={{ color: GOLD, fontWeight: 700 }}>{profile.full_name?.split(' ')[0]}</span></span>
+          ) : null}
         </div>
       </div>
 

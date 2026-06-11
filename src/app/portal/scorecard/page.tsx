@@ -81,13 +81,11 @@ export default function ScorecardPage() {
         continue
       }
       const strokesNum = parseInt(strokes)
-      if (existing) {
-        const { error } = await supabase.from('scores').update({ strokes: strokesNum }).eq('id', existing.id)
-        if (error) hasError = true
-      } else {
-        const { error } = await supabase.from('scores').insert({ team_id: myTeam.id, hole_number: holeNum, strokes: strokesNum, entered_by: userId })
-        if (error) hasError = true
-      }
+      const { error } = await supabase.from('scores').upsert(
+        { team_id: myTeam.id, hole_number: holeNum, strokes: strokesNum, entered_by: userId },
+        { onConflict: 'team_id,hole_number' }
+      )
+      if (error) hasError = true
     }
     setMessage(hasError ? 'Some scores failed to save. Please try again.' : 'Scores saved!')
     setTimeout(() => setMessage(''), 3000)
@@ -107,7 +105,8 @@ export default function ScorecardPage() {
   const overUnderColor = grandTotal === 0 ? MUTED : overUnder < 0 ? GOLD : overUnder === 0 ? CREAM : '#ff8f8f'
 
   const teamLabel = myTeam ? myTeam.name.toUpperCase() : 'YOUR TEAM'
-  const canEdit = !!myTeam
+  const isLocked = !!myTeam?.is_locked
+  const canEdit = !!myTeam && !isLocked
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -134,6 +133,12 @@ export default function ScorecardPage() {
       {!myTeam && (
         <div style={{ background: 'rgba(201,168,76,0.06)', border: `1px solid rgba(201,168,76,0.2)`, borderRadius: '1rem', padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: MUTED }}>
           You're not on a team yet — scores are view-only until the admin assigns teams.
+        </div>
+      )}
+
+      {isLocked && (
+        <div style={{ background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.25)', borderRadius: '1rem', padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: '#ff8f8f', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          🔒 Scoring is locked by the admin — scores cannot be edited.
         </div>
       )}
 
@@ -273,9 +278,19 @@ function ScorecardTable({
                   <td key={h.number} style={{ ...td, background: CARD_MID, padding: '0.25rem' }}>
                     {canEdit ? (
                       <input
+                        id={`hole-${h.number}`}
                         type="number" min="1" max="20"
+                        inputMode="numeric"
                         value={val}
-                        onChange={e => setEditing(prev => ({ ...prev, [h.number]: e.target.value }))}
+                        onChange={e => {
+                          const v = e.target.value
+                          setEditing(prev => ({ ...prev, [h.number]: v }))
+                          const n = parseInt(v)
+                          if (n >= 1 && n <= 20) {
+                            const next = document.getElementById(`hole-${h.number + 1}`)
+                            if (next) (next as HTMLInputElement).focus()
+                          }
+                        }}
                         style={{
                           width: '100%', minWidth: '2rem', textAlign: 'center',
                           padding: '0.35rem 0.2rem', borderRadius: '0.4rem',

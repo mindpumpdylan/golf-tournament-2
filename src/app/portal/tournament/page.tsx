@@ -1,14 +1,25 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { CURRENT_YEAR, ALL_HOLES } from '@/lib/constants'
+import { CURRENT_YEAR, ALL_HOLES, HOLES } from '@/lib/constants'
 import type { Score } from '@/lib/types'
+
+function relativeTime(date: Date) {
+  const secs = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (secs < 10) return 'just now'
+  if (secs < 60) return `${secs}s ago`
+  const mins = Math.floor(secs / 60)
+  if (mins < 60) return `${mins}m ago`
+  return `${Math.floor(mins / 60)}h ago`
+}
 
 export default function TournamentPage() {
   const [teams, setTeams] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [, forceUpdate] = useState(0)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const { data: teamsData } = await supabase.from('teams').select('*, team_members(*, profiles(*))').eq('tournament_year', CURRENT_YEAR)
     const teamIds = teamsData?.map((t: any) => t.id) || []
     const { data: scoresData } = teamIds.length > 0
@@ -21,14 +32,16 @@ export default function TournamentPage() {
         scores: scoresData?.filter((s: Score) => s.team_id === t.id) || []
       })))
     }
+    setLastUpdated(new Date())
     setLoading(false)
-  }
+  }, [])
 
   useEffect(() => {
     load()
     const sub = supabase.channel('scores-tournament').on('postgres_changes', { event: '*', schema: 'public', table: 'scores' }, load).subscribe()
-    return () => { supabase.removeChannel(sub) }
-  }, [])
+    const tick = setInterval(() => forceUpdate(n => n + 1), 10000)
+    return () => { supabase.removeChannel(sub); clearInterval(tick) }
+  }, [load])
 
   const getTotal = (scores: Score[]) => scores.reduce((sum, s) => sum + s.strokes, 0)
   const sorted = [...teams].sort((a, b) => {
@@ -40,9 +53,19 @@ export default function TournamentPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div>
-        <h1 style={{ fontSize: '2.5rem', color: 'var(--electric)', marginBottom: '0.5rem' }}>{CURRENT_YEAR} Tournament</h1>
-        <p style={{ color: 'var(--text-muted)' }}>Live teams and leaderboard — updates in real time</p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '2.5rem', color: 'var(--gold)', marginBottom: '0.5rem' }}>{CURRENT_YEAR} Tournament</h1>
+          <p style={{ color: 'var(--text-muted)' }}>Live teams and leaderboard — updates in real time</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {lastUpdated && (
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Updated {relativeTime(lastUpdated)}</span>
+          )}
+          <button onClick={load} style={{ padding: '0.4rem 0.875rem', borderRadius: '0.75rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: 'var(--navy-card)', border: '1px solid var(--navy-border)', color: 'var(--text-muted)', transition: 'all 0.15s' }}>
+            ↺ Refresh
+          </button>
+        </div>
       </div>
 
       {teams.length === 0 ? (
@@ -62,18 +85,19 @@ export default function TournamentPage() {
               {sorted.map((team, idx) => (
                 <div key={team.id} style={{
                   display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', borderRadius: '1rem',
-                  background: idx === 0 ? 'rgba(255,215,0,0.08)' : 'var(--navy-light)',
-                  border: idx === 0 ? '1px solid rgba(255,215,0,0.2)' : '1px solid transparent',
+                  background: idx === 0 ? 'rgba(201,168,76,0.08)' : 'var(--navy-light)',
+                  border: idx === 0 ? '1px solid rgba(201,168,76,0.2)' : '1px solid transparent',
                 }}>
-                  <span style={{ fontSize: '1.5rem', fontFamily: 'Playfair Display, serif', fontWeight: 700, width: '2rem', textAlign: 'center', color: idx === 0 ? 'var(--gold)' : idx === 1 ? '#c0c0c0' : idx === 2 ? '#cd7f32' : 'var(--text-muted)' }}>
+                  <span style={{ fontSize: '1.5rem', fontFamily: 'Georgia, serif', fontWeight: 700, width: '2rem', textAlign: 'center', color: idx === 0 ? 'var(--gold)' : idx === 1 ? '#c0c0c0' : idx === 2 ? '#cd7f32' : 'var(--text-muted)' }}>
                     {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
                   </span>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: 700, fontSize: '1rem' }}>{team.name}</p>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{team.members.map((m: any) => m.profiles?.full_name).join(', ')}</p>
+                    {team.tee_time && <p style={{ fontSize: '0.75rem', color: 'var(--gold)', marginTop: '0.15rem' }}>Tee: {team.tee_time}</p>}
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontSize: '2rem', fontFamily: 'Playfair Display, serif', fontWeight: 700, color: idx === 0 ? 'var(--gold)' : 'var(--electric)', lineHeight: 1 }}>
+                    <p style={{ fontSize: '2rem', fontFamily: 'Georgia, serif', fontWeight: 700, color: idx === 0 ? 'var(--gold)' : 'var(--white)', lineHeight: 1 }}>
                       {getTotal(team.scores) || '—'}
                     </p>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{team.scores.length}/18 holes</p>
@@ -87,36 +111,46 @@ export default function TournamentPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
             {teams.map(team => (
               <div key={team.id} className="card">
-                <h3 style={{ fontSize: '1.2rem', marginBottom: '0.75rem', color: 'var(--electric)' }}>{team.name}</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                  <h3 style={{ fontSize: '1.2rem', color: 'var(--gold)' }}>{team.name}</h3>
+                  {team.tee_time && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '0.2rem' }}>Tee: {team.tee_time}</span>}
+                </div>
                 <div style={{ marginBottom: '1rem' }}>
                   {team.members.map((m: any) => (
                     <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.3rem 0', borderBottom: '1px solid var(--navy-light)' }}>
                       <span style={{ fontSize: '0.9rem' }}>{m.profiles?.full_name}</span>
-                      <span className="badge-electric" style={{ fontSize: '0.75rem' }}>HCP {m.profiles?.handicap ?? 'N/A'}</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>HCP {m.profiles?.handicap ?? 'N/A'}</span>
                     </div>
                   ))}
                 </div>
-                {/* Mini scorecard */}
+                {/* Mini scorecard — front 9 */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '2px', marginBottom: '2px' }}>
                   {ALL_HOLES.slice(0, 9).map(h => {
                     const score = team.scores.find((s: Score) => s.hole_number === h)
+                    const hole = HOLES[h - 1]
+                    const under = score && score.strokes < hole.par
+                    const over = score && score.strokes > hole.par
                     return (
                       <div key={h} style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '2px' }}>{h}</div>
-                        <div style={{ height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, background: score ? 'var(--electric)' : 'var(--navy-light)', color: score ? 'var(--navy)' : 'var(--navy-border)' }}>
+                        <div style={{ height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, background: score ? (under ? 'rgba(201,168,76,0.25)' : over ? 'rgba(255,107,107,0.2)' : 'var(--navy-card)') : 'var(--navy-light)', color: score ? (under ? 'var(--gold)' : over ? '#ff8f8f' : 'var(--white)') : 'var(--navy-border)' }}>
                           {score?.strokes || '·'}
                         </div>
                       </div>
                     )
                   })}
                 </div>
+                {/* Back 9 */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '2px' }}>
                   {ALL_HOLES.slice(9).map(h => {
                     const score = team.scores.find((s: Score) => s.hole_number === h)
+                    const hole = HOLES[h - 1]
+                    const under = score && score.strokes < hole.par
+                    const over = score && score.strokes > hole.par
                     return (
                       <div key={h} style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '2px' }}>{h}</div>
-                        <div style={{ height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, background: score ? 'var(--electric)' : 'var(--navy-light)', color: score ? 'var(--navy)' : 'var(--navy-border)' }}>
+                        <div style={{ height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, background: score ? (under ? 'rgba(201,168,76,0.25)' : over ? 'rgba(255,107,107,0.2)' : 'var(--navy-card)') : 'var(--navy-light)', color: score ? (under ? 'var(--gold)' : over ? '#ff8f8f' : 'var(--white)') : 'var(--navy-border)' }}>
                           {score?.strokes || '·'}
                         </div>
                       </div>
@@ -125,7 +159,7 @@ export default function TournamentPage() {
                 </div>
                 <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total</span>
-                  <span style={{ fontSize: '1.5rem', fontFamily: 'Playfair Display, serif', fontWeight: 700, color: 'var(--electric)' }}>{getTotal(team.scores) || '—'}</span>
+                  <span style={{ fontSize: '1.5rem', fontFamily: 'Georgia, serif', fontWeight: 700, color: 'var(--gold)' }}>{getTotal(team.scores) || '—'}</span>
                 </div>
               </div>
             ))}
