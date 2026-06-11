@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { resend } from '@/lib/resend'
+import { Resend } from 'resend'
 
 export async function POST(req: NextRequest) {
+  const resend = new Resend(process.env.RESEND_API_KEY)
   const { email, name, token, inviter } = await req.json()
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
   const link = `${siteUrl}/signup?token=${token}`
