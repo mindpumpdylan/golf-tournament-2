@@ -1,7 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { CURRENT_YEAR, PAR3_HOLES } from '@/lib/constants'
+import { CURRENT_YEAR, HOLES } from '@/lib/constants'
+
+const PAR3_HOLES = HOLES.filter(h => h.par === 3)
 
 export default function PinPage() {
   const [userId, setUserId] = useState('')
