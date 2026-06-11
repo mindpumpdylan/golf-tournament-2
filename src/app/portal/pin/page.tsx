@@ -7,8 +7,9 @@ const PAR3_HOLES = HOLES.filter(h => h.par === 3)
 
 export default function PinPage() {
   const [userId, setUserId] = useState('')
+  const [players, setPlayers] = useState<any[]>([])
   const [entries, setEntries] = useState<any[]>([])
-  const [form, setForm] = useState({ hole_number: PAR3_HOLES[0].number.toString(), distance_feet: '', distance_inches: '' })
+  const [form, setForm] = useState({ hole_number: PAR3_HOLES[0].number.toString(), distance_feet: '', distance_inches: '', for_player_id: '' })
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
@@ -17,8 +18,11 @@ export default function PinPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
     setUserId(session.user.id)
+    setForm(prev => prev.for_player_id ? prev : { ...prev, for_player_id: session.user.id })
     const { data: prof } = await supabase.from('profiles').select('is_admin').eq('id', session.user.id).single()
     setIsAdmin(prof?.is_admin || false)
+    const { data: pl } = await supabase.from('profiles').select('id, full_name').order('full_name')
+    setPlayers(pl || [])
     const { data } = await supabase.from('closest_to_pin').select('*, profiles(full_name)').eq('tournament_year', CURRENT_YEAR).order('hole_number').order('distance_feet').order('distance_inches')
     setEntries(data || [])
   }
@@ -33,19 +37,23 @@ export default function PinPage() {
     e.preventDefault()
     setSubmitting(true)
     const holeNum = parseInt(form.hole_number)
+    const targetPlayerId = form.for_player_id || userId
     await supabase.from('closest_to_pin')
       .delete()
-      .eq('player_id', userId)
+      .eq('player_id', targetPlayerId)
       .eq('tournament_year', CURRENT_YEAR)
       .eq('hole_number', holeNum)
     const { error } = await supabase.from('closest_to_pin').insert({
-      player_id: userId, tournament_year: CURRENT_YEAR,
+      player_id: targetPlayerId,
+      tournament_year: CURRENT_YEAR,
       hole_number: holeNum,
       distance_feet: parseInt(form.distance_feet),
       distance_inches: parseInt(form.distance_inches) || 0,
     })
-    if (!error) { setMessage('Shot submitted! 🎯'); setForm({ ...form, distance_feet: '', distance_inches: '' }) }
-    else setMessage('Error: ' + error.message)
+    if (!error) {
+      setMessage('Shot submitted! 🎯')
+      setForm(prev => ({ ...prev, distance_feet: '', distance_inches: '' }))
+    } else setMessage('Error: ' + error.message)
     setSubmitting(false)
     load()
   }
@@ -56,6 +64,7 @@ export default function PinPage() {
   }, {} as { [key: number]: any[] })
 
   const selectedHole = PAR3_HOLES.find(h => h.number.toString() === form.hole_number)
+  const forPlayerName = players.find(p => p.id === form.for_player_id)?.full_name || 'Myself'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -66,29 +75,46 @@ export default function PinPage() {
 
       {/* Submit form */}
       <div className="card-glow">
-        <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Submit Your Shot</h2>
+        <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Submit a Shot</h2>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* Entering for */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>ENTERING FOR</label>
+            <select className="input" value={form.for_player_id} onChange={e => setForm({ ...form, for_player_id: e.target.value })}>
+              {players.map(p => (
+                <option key={p.id} value={p.id}>{p.id === userId ? `${p.full_name} (me)` : p.full_name}</option>
+              ))}
+            </select>
+            {form.for_player_id && form.for_player_id !== userId && (
+              <p style={{ marginTop: '0.4rem', fontSize: '0.8rem', color: 'var(--gold)' }}>Entering on behalf of {forPlayerName}</p>
+            )}
+          </div>
+
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>SELECT HOLE</label>
             <select className="input" value={form.hole_number} onChange={e => setForm({ ...form, hole_number: e.target.value })}>
               {PAR3_HOLES.map(h => <option key={h.number} value={h.number}>Hole {h.number} — {h.name} ({h.yards} yds)</option>)}
             </select>
           </div>
+
           {selectedHole && (
             <div style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.15)', borderRadius: '0.875rem', padding: '0.75rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               <span style={{ color: 'var(--electric)', fontWeight: 700 }}>Hole {selectedHole.number}: {selectedHole.name}</span> · {selectedHole.yards} yards
             </div>
           )}
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>FEET FROM PIN</label>
-              <input className="input" type="number" min="0" value={form.distance_feet} onChange={e => setForm({ ...form, distance_feet: e.target.value })} placeholder="12" required />
+              <input className="input" type="number" min="0" inputMode="numeric" value={form.distance_feet} onChange={e => setForm({ ...form, distance_feet: e.target.value })} placeholder="12" required />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>INCHES</label>
-              <input className="input" type="number" min="0" max="11" value={form.distance_inches} onChange={e => setForm({ ...form, distance_inches: e.target.value })} placeholder="6" />
+              <input className="input" type="number" min="0" max="11" inputMode="numeric" value={form.distance_inches} onChange={e => setForm({ ...form, distance_inches: e.target.value })} placeholder="6" />
             </div>
           </div>
+
           {message && <p style={{ color: 'var(--electric)', fontSize: '0.9rem' }}>{message}</p>}
           <button type="submit" className="btn-electric" disabled={submitting} style={{ alignSelf: 'flex-start' }}>
             {submitting ? 'Submitting...' : 'Submit Distance 🎯'}

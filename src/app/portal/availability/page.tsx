@@ -36,7 +36,7 @@ export default function AvailabilityPage() {
 
   const handleSave = async () => {
     setSaving(true)
-    await supabase.from('availability_dates').delete().eq('user_id', userId).eq('tournament_year', CURRENT_YEAR)
+    await supabase.from('availability_dates').delete().eq('user_id', userId)
     if (selectedDates.length > 0) {
       await supabase.from('availability_dates').insert(
         selectedDates.map(d => ({ user_id: userId, date: format(d, 'yyyy-MM-dd'), tournament_year: CURRENT_YEAR }))
