@@ -313,7 +313,7 @@ export default function AdminPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{getDisplayName(p)}</p>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    {p.email} · HCP: {p.handicap ?? 'N/A'} {p.ghin_number ? '· GHIN: ' + p.ghin_number : ''}
+                    {p.email} · HCP: {p.handicap ?? 'N/A'} {p.ghin_number ? '· GHIN: ' + p.ghin_number : ''} {p.phone_number ? '· ' + p.phone_number : ''}
                   </p>
                   {(playerDates[p.id] || []).length > 0 ? (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.5rem' }}>

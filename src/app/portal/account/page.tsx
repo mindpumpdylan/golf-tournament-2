@@ -19,6 +19,7 @@ export default function AccountPage() {
   const [nickname, setNickname] = useState('')
   const [handicap, setHandicap] = useState('')
   const [ghin, setGhin] = useState('')
+  const [phone, setPhone] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -99,6 +100,7 @@ export default function AccountPage() {
     setNickname(prof?.nickname || '')
     setHandicap(prof?.handicap?.toString() || '')
     setGhin(prof?.ghin_number || '')
+    setPhone(prof?.phone_number || '')
     setAvatarUrl(prof?.avatar_url || '')
 
     const { data: res } = await supabase.from('reservations').select('*').eq('reserver_id', uid).order('created_at', { ascending: false })
@@ -128,6 +130,7 @@ export default function AccountPage() {
       nickname: nickname.trim() || null,
       handicap: parseFloat(handicap) || null,
       ghin_number: ghin || null,
+      phone_number: phone.trim() || null,
     }).eq('id', session.user.id)
     setMessage(error ? 'Save failed: ' + error.message : 'Profile updated!')
     setTimeout(() => setMessage(''), 3000)
@@ -318,6 +321,10 @@ export default function AccountPage() {
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>GHIN NUMBER</label>
                 <input className="input" value={ghin} onChange={e => setGhin(e.target.value)} placeholder="Optional" />
               </div>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>PHONE NUMBER <span style={{ fontWeight: 400, fontSize: '0.72rem', letterSpacing: 0, textTransform: 'none' }}>(optional — visible to admin)</span></label>
+              <input className="input" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 555-5555" autoComplete="tel" />
             </div>
             <button onClick={handleSaveProfile} className="btn-electric" disabled={saving} style={{ alignSelf: 'flex-start' }}>
               {saving ? 'Saving...' : 'Save Profile'}

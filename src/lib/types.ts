@@ -6,6 +6,7 @@ export type Profile = {
   avatar_url: string | null
   handicap: number | null
   ghin_number: string | null
+  phone_number: string | null
   is_admin: boolean
   created_at: string
 }

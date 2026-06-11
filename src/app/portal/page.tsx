@@ -59,12 +59,20 @@ export default function PortalHome() {
       const { data: avail } = await supabase.from('availability_dates').select('id').eq('user_id', uid).eq('tournament_year', CURRENT_YEAR).limit(1)
       setHasSetAvailability(!!(avail && avail.length > 0))
 
-      const { data: allDates } = await supabase.from('availability_dates').select('date').eq('tournament_year', CURRENT_YEAR)
-      if (allDates) {
-        const counts: { [date: string]: number } = {}
-        allDates.forEach((d: any) => { counts[d.date] = (counts[d.date] || 0) + 1 })
-        setTopDates(Object.entries(counts).map(([date, count]) => ({ date, count })).sort((a, b) => b.count - a.count).slice(0, 3))
-      }
+      try {
+        const avRes = await fetch('/api/availability-summary', {
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        })
+        if (avRes.ok) {
+          const { counts } = await avRes.json()
+          setTopDates(
+            Object.entries(counts as Record<string, number>)
+              .map(([date, count]) => ({ date, count }))
+              .sort((a, b) => b.count - a.count)
+              .slice(0, 3)
+          )
+        }
+      } catch {}
 
       const { count: playerCount } = await supabase.from('profiles').select('id', { count: 'exact' })
       setTotalPlayers(playerCount || 0)

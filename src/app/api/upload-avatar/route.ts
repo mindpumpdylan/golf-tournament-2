@@ -11,11 +11,15 @@ export async function POST(req: NextRequest) {
   const file = formData.get('file') as File
   if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
   const buffer = Buffer.from(await file.arrayBuffer())
-  const result = await new Promise<any>((resolve, reject) => {
-    cloudinary.uploader.upload_stream(
-      { folder: 'high-country-classic/avatars', resource_type: 'image', transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face' }] },
-      (err, res) => err ? reject(err) : resolve(res)
-    ).end(buffer)
-  })
-  return NextResponse.json({ url: result.secure_url })
+  try {
+    const result = await new Promise<any>((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        { folder: 'high-country-classic/avatars', resource_type: 'image', transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face' }] },
+        (err, res) => err ? reject(err) : resolve(res)
+      ).end(buffer)
+    })
+    return NextResponse.json({ url: result.secure_url })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message || 'Cloudinary upload failed' }, { status: 500 })
+  }
 }
