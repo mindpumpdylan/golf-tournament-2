@@ -2,6 +2,8 @@ export type Profile = {
   id: string
   email: string
   full_name: string
+  nickname: string | null
+  avatar_url: string | null
   handicap: number | null
   ghin_number: string | null
   is_admin: boolean

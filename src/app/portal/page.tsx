@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import type { Profile } from '@/lib/types'
 import { COURSE_NAME, COURSE_LOCATION, CURRENT_YEAR } from '@/lib/constants'
+import { displayName } from '@/lib/utils'
 
 const CARD: React.CSSProperties = { background: '#111a0f', border: '1px solid #3d3220', borderRadius: '1.5rem', padding: '1.5rem' }
 const GOLD = '#c9a84c'
@@ -81,7 +82,7 @@ export default function PortalHome() {
         }
       }
 
-      const { data: pinData } = await supabase.from('closest_to_pin').select('*, profiles(full_name)').eq('tournament_year', CURRENT_YEAR).order('distance_feet').order('distance_inches')
+      const { data: pinData } = await supabase.from('closest_to_pin').select('*, profiles(full_name, nickname)').eq('tournament_year', CURRENT_YEAR).order('distance_feet').order('distance_inches')
       if (pinData) {
         const seen = new Set()
         setPinLeaders(pinData.filter((e: any) => { if (seen.has(e.hole_number)) return false; seen.add(e.hole_number); return true }).slice(0, 3))
@@ -171,7 +172,7 @@ export default function PortalHome() {
           {loading ? (
             <span style={{ color: 'rgba(240,230,204,0.45)', fontSize: '0.9rem' }}>Welcome back!</span>
           ) : profile ? (
-            <span style={{ color: 'rgba(240,230,204,0.7)', fontSize: '0.9rem' }}>Welcome back, <span style={{ color: GOLD, fontWeight: 700 }}>{profile.full_name?.split(' ')[0]}</span></span>
+            <span style={{ color: 'rgba(240,230,204,0.7)', fontSize: '0.9rem' }}>Welcome back, <span style={{ color: GOLD, fontWeight: 700 }}>{displayName(profile)}</span></span>
           ) : null}
         </div>
       </div>
@@ -335,7 +336,7 @@ export default function PortalHome() {
                     {pinLeaders.map(entry => (
                       <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.4rem 0.75rem', borderRadius: '0.75rem', background: CARD_MID }}>
                         <span style={{ fontSize: '0.75rem', color: MUTED, width: '50px' }}>Hole {entry.hole_number}</span>
-                        <span style={{ fontSize: '0.8rem', flex: 1, fontWeight: 600, color: CREAM }}>{entry.profiles?.full_name?.split(' ')[0]}</span>
+                        <span style={{ fontSize: '0.8rem', flex: 1, fontWeight: 600, color: CREAM }}>{displayName(entry.profiles)}</span>
                         <span style={{ fontWeight: 700, color: GOLD, fontSize: '0.9rem' }}>{entry.distance_feet}'{entry.distance_inches}"</span>
                       </div>
                     ))}

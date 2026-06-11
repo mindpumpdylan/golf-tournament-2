@@ -1,10 +1,11 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, HOLES } from '@/lib/constants'
+import { displayName } from '@/lib/utils'
+import { format } from 'date-fns'
 
 const PAR3_HOLES = HOLES.filter(h => h.par === 3)
-import { format } from 'date-fns'
 
 export default function AccountPage() {
   const [profile, setProfile] = useState<any>(null)
@@ -12,11 +13,16 @@ export default function AccountPage() {
   const [scores, setScores] = useState<any[]>([])
   const [pinEntries, setPinEntries] = useState<any[]>([])
   const [availability, setAvailability] = useState<any[]>([])
+  const [fullName, setFullName] = useState('')
+  const [nickname, setNickname] = useState('')
   const [handicap, setHandicap] = useState('')
   const [ghin, setGhin] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [avatarUploading, setAvatarUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [tab, setTab] = useState<'profile' | 'reservations' | 'stats' | 'history'>('profile')
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const load = async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -25,8 +31,11 @@ export default function AccountPage() {
 
     const { data: prof } = await supabase.from('profiles').select('*').eq('id', uid).single()
     setProfile(prof)
+    setFullName(prof?.full_name || '')
+    setNickname(prof?.nickname || '')
     setHandicap(prof?.handicap?.toString() || '')
     setGhin(prof?.ghin_number || '')
+    setAvatarUrl(prof?.avatar_url || '')
 
     const { data: res } = await supabase.from('reservations').select('*').eq('reserver_id', uid).order('created_at', { ascending: false })
     setReservations(res || [])
@@ -51,12 +60,34 @@ export default function AccountPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
     await supabase.from('profiles').update({
+      full_name: fullName.trim() || null,
+      nickname: nickname.trim() || null,
       handicap: parseFloat(handicap) || null,
       ghin_number: ghin || null,
     }).eq('id', session.user.id)
     setMessage('Profile updated!')
+    setTimeout(() => setMessage(''), 3000)
     setSaving(false)
     load()
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    setAvatarUploading(true)
+    const fd = new FormData()
+    fd.append('file', f)
+    const res = await fetch('/api/upload-avatar', { method: 'POST', body: fd })
+    const json = await res.json()
+    if (json.url) {
+      setAvatarUrl(json.url)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) await supabase.from('profiles').update({ avatar_url: json.url }).eq('id', session.user.id)
+      setMessage('Photo updated!')
+      setTimeout(() => setMessage(''), 3000)
+    }
+    setAvatarUploading(false)
+    if (fileRef.current) fileRef.current.value = ''
   }
 
   const totalScore = scores.reduce((sum, s) => sum + s.strokes, 0)
@@ -81,11 +112,32 @@ export default function AccountPage() {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-        <div style={{ width: '64px', height: '64px', borderRadius: '999px', background: 'var(--electric)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', fontWeight: 700, color: 'var(--navy)', flexShrink: 0 }}>
-          {profile?.full_name?.charAt(0) || '?'}
+        {/* Avatar */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div
+            onClick={() => !avatarUploading && fileRef.current?.click()}
+            style={{ width: '72px', height: '72px', borderRadius: '999px', overflow: 'hidden', cursor: 'pointer', border: '2px solid rgba(201,168,76,0.3)', position: 'relative' }}
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: '100%', height: '100%', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', fontWeight: 700, color: '#0d0f0a' }}>
+                {profile?.full_name?.charAt(0) || '?'}
+              </div>
+            )}
+            {avatarUploading && (
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#fff' }}>...</div>
+            )}
+          </div>
+          <button
+            onClick={() => fileRef.current?.click()}
+            style={{ position: 'absolute', bottom: '-2px', right: '-4px', width: '22px', height: '22px', borderRadius: '999px', background: 'var(--gold)', border: '2px solid #0d0f0a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', cursor: 'pointer' }}
+          >📷</button>
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} />
         </div>
+
         <div>
-          <h1 style={{ fontSize: '2rem', color: 'var(--white)', marginBottom: '0.2rem' }}>{profile?.full_name}</h1>
+          <h1 style={{ fontSize: '2rem', color: 'var(--white)', marginBottom: '0.2rem' }}>{displayName(profile)}</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{profile?.email}</p>
           {profile?.is_admin && <span className="badge-gold" style={{ marginTop: '0.4rem', display: 'inline-block' }}>Admin</span>}
         </div>
@@ -111,9 +163,9 @@ export default function AccountPage() {
         {tabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key as any)} style={{
             padding: '0.6rem 1.25rem', borderRadius: '0.875rem', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
-            background: tab === t.key ? 'var(--electric)' : 'var(--navy-card)',
-            color: tab === t.key ? 'var(--navy)' : 'var(--text-muted)',
-            border: '1px solid ' + (tab === t.key ? 'var(--electric)' : 'var(--navy-border)'),
+            background: tab === t.key ? 'rgba(201,168,76,0.15)' : 'var(--navy-card)',
+            color: tab === t.key ? 'var(--gold)' : 'var(--text-muted)',
+            border: '1px solid ' + (tab === t.key ? 'rgba(201,168,76,0.3)' : 'var(--navy-border)'),
           }}>{t.label}</button>
         ))}
       </div>
@@ -130,12 +182,16 @@ export default function AccountPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>FULL NAME</label>
-                <div style={{ padding: '0.85rem 1rem', background: 'var(--navy-light)', borderRadius: '0.875rem', color: 'var(--text-muted)', fontSize: '0.95rem' }}>{profile?.full_name}</div>
+                <input className="input" type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your full name" />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>EMAIL</label>
-                <div style={{ padding: '0.85rem 1rem', background: 'var(--navy-light)', borderRadius: '0.875rem', color: 'var(--text-muted)', fontSize: '0.95rem' }}>{profile?.email}</div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>NICKNAME <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(shown instead of full name)</span></label>
+                <input className="input" type="text" value={nickname} onChange={e => setNickname(e.target.value)} placeholder="e.g. Big D, Duke, Flash" />
               </div>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>EMAIL</label>
+              <div style={{ padding: '0.85rem 1rem', background: 'var(--navy-light)', borderRadius: '0.875rem', color: 'var(--text-muted)', fontSize: '0.95rem' }}>{profile?.email}</div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
@@ -258,7 +314,7 @@ export default function AccountPage() {
                         <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>Hole {entry.hole_number}{hole ? ' — ' + hole.name : ''}</p>
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{entry.tournament_year}</p>
                       </div>
-                      <span style={{ fontFamily: 'Georgia, serif', fontWeight: 700, color: 'var(--electric)', fontSize: '1.1rem' }}>
+                      <span style={{ fontFamily: 'Playfair Display, serif', fontWeight: 700, color: 'var(--electric)', fontSize: '1.1rem' }}>
                         {entry.distance_feet}'{entry.distance_inches}"
                       </span>
                     </div>

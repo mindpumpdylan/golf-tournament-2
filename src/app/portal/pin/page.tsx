@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, HOLES } from '@/lib/constants'
+import { displayName } from '@/lib/utils'
 
 const PAR3_HOLES = HOLES.filter(h => h.par === 3)
 
@@ -21,9 +22,9 @@ export default function PinPage() {
     setForm(prev => prev.for_player_id ? prev : { ...prev, for_player_id: session.user.id })
     const { data: prof } = await supabase.from('profiles').select('is_admin').eq('id', session.user.id).single()
     setIsAdmin(prof?.is_admin || false)
-    const { data: pl } = await supabase.from('profiles').select('id, full_name').order('full_name')
+    const { data: pl } = await supabase.from('profiles').select('id, full_name, nickname').order('full_name')
     setPlayers(pl || [])
-    const { data } = await supabase.from('closest_to_pin').select('*, profiles(full_name)').eq('tournament_year', CURRENT_YEAR).order('hole_number').order('distance_feet').order('distance_inches')
+    const { data } = await supabase.from('closest_to_pin').select('*, profiles(full_name, nickname)').eq('tournament_year', CURRENT_YEAR).order('hole_number').order('distance_feet').order('distance_inches')
     setEntries(data || [])
   }
 
@@ -64,7 +65,8 @@ export default function PinPage() {
   }, {} as { [key: number]: any[] })
 
   const selectedHole = PAR3_HOLES.find(h => h.number.toString() === form.hole_number)
-  const forPlayerName = players.find(p => p.id === form.for_player_id)?.full_name || 'Myself'
+  const foundPlayer = players.find(p => p.id === form.for_player_id)
+  const forPlayerName = foundPlayer ? displayName(foundPlayer) : 'Myself'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -83,7 +85,7 @@ export default function PinPage() {
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>ENTERING FOR</label>
             <select className="input" value={form.for_player_id} onChange={e => setForm({ ...form, for_player_id: e.target.value })}>
               {players.map(p => (
-                <option key={p.id} value={p.id}>{p.id === userId ? `${p.full_name} (me)` : p.full_name}</option>
+                <option key={p.id} value={p.id}>{p.id === userId ? `${displayName(p)} (me)` : displayName(p)}</option>
               ))}
             </select>
             {form.for_player_id && form.for_player_id !== userId && (
@@ -146,7 +148,7 @@ export default function PinPage() {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {idx === 0 && <span>🏆</span>}
-                      <span style={{ fontSize: '0.9rem', fontWeight: idx === 0 ? 700 : 400 }}>{entry.profiles?.full_name || 'Unknown'}</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: idx === 0 ? 700 : 400 }}>{displayName(entry.profiles)}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <span style={{ fontFamily: 'Playfair Display, serif', fontWeight: 700, color: idx === 0 ? 'var(--gold)' : 'var(--electric)', fontSize: '1rem' }}>

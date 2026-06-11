@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, ALL_HOLES, HOLES } from '@/lib/constants'
+import { displayName } from '@/lib/utils'
 import type { Score } from '@/lib/types'
 
 function relativeTime(date: Date) {
@@ -93,7 +94,7 @@ export default function TournamentPage() {
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: 700, fontSize: '1rem' }}>{team.name}</p>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{team.members.map((m: any) => m.profiles?.full_name).join(', ')}</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{team.members.map((m: any) => displayName(m.profiles)).join(', ')}</p>
                     {team.tee_time && <p style={{ fontSize: '0.75rem', color: 'var(--gold)', marginTop: '0.15rem' }}>Tee: {team.tee_time}</p>}
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -118,7 +119,7 @@ export default function TournamentPage() {
                 <div style={{ marginBottom: '1rem' }}>
                   {team.members.map((m: any) => (
                     <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.3rem 0', borderBottom: '1px solid var(--navy-light)' }}>
-                      <span style={{ fontSize: '0.9rem' }}>{m.profiles?.full_name}</span>
+                      <span style={{ fontSize: '0.9rem' }}>{displayName(m.profiles)}</span>
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>HCP {m.profiles?.handicap ?? 'N/A'}</span>
                     </div>
                   ))}

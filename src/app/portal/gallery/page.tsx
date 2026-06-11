@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, ALL_HOLES } from '@/lib/constants'
+import { displayName } from '@/lib/utils'
 import { format } from 'date-fns'
 
 export default function GalleryPage() {
@@ -18,7 +19,7 @@ export default function GalleryPage() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = async () => {
-    const { data } = await supabase.from('media_posts').select('*, profiles(full_name)').eq('tournament_year', CURRENT_YEAR).order('created_at', { ascending: false })
+    const { data } = await supabase.from('media_posts').select('*, profiles(full_name, nickname)').eq('tournament_year', CURRENT_YEAR).order('created_at', { ascending: false })
     setPosts(data || [])
   }
 
@@ -156,7 +157,7 @@ export default function GalleryPage() {
               <div style={{ padding: '1rem' }}>
                 {post.caption && <p style={{ fontWeight: 600, marginBottom: '0.5rem' }}>{post.caption}</p>}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{post.profiles?.full_name}</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{displayName(post.profiles)}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {post.hole_number && <span style={{ padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(201,168,76,0.1)', color: 'var(--gold)', border: '1px solid rgba(201,168,76,0.2)' }}>Hole {post.hole_number}</span>}
                     <a href={post.cloudinary_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--gold)', textDecoration: 'none', fontWeight: 700 }}>⬇ Save</a>

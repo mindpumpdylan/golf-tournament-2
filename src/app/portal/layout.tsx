@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import type { Profile } from '@/lib/types'
+import { displayName } from '@/lib/utils'
 
 const navItems = [
   { href: '/portal', label: 'Home' },
@@ -99,22 +100,15 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               background: 'var(--card-mid)', border: '1px solid var(--border)',
               transition: 'all 0.15s',
             }} className="hidden md:flex">
-              <div style={{ width: '22px', height: '22px', borderRadius: '999px', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700, color: '#0d0f0a', flexShrink: 0 }}>
-                {profile?.full_name?.charAt(0) || '?'}
+              <div style={{ width: '22px', height: '22px', borderRadius: '999px', overflow: 'hidden', flexShrink: 0, background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700, color: '#0d0f0a' }}>
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : (profile?.full_name?.charAt(0) || '?')}
               </div>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--cream-dim)', maxWidth: '70px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>
-                {profile?.full_name?.split(' ')[0]}
+                {displayName(profile)}
               </span>
             </Link>
-
-            {/* Sign out — desktop only */}
-            <button onClick={handleSignOut} style={{
-              padding: '0.4rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.75rem', fontWeight: 700,
-              background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-muted)',
-              cursor: 'pointer', transition: 'all 0.15s', letterSpacing: '0.06em',
-            }} className="hidden md:block">
-              SIGN OUT
-            </button>
 
             {/* Hamburger — mobile only */}
             <button
@@ -175,11 +169,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         {/* Drawer header */}
         <div style={{ padding: '1.25rem 1.25rem 1rem', borderBottom: '1px solid #3d3220', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '999px', background: '#c9a84c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: '#0d0f0a' }}>
-              {profile?.full_name?.charAt(0) || '?'}
+            <div style={{ width: '28px', height: '28px', borderRadius: '999px', overflow: 'hidden', background: '#c9a84c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: '#0d0f0a', flexShrink: 0 }}>
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : (profile?.full_name?.charAt(0) || '?')}
             </div>
             <div>
-              <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f0e6cc', lineHeight: 1 }}>{profile?.full_name?.split(' ')[0]}</p>
+              <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f0e6cc', lineHeight: 1 }}>{displayName(profile)}</p>
               <p style={{ fontSize: '0.7rem', color: '#8b7d6b', marginTop: '0.15rem' }}>Player</p>
             </div>
           </div>
