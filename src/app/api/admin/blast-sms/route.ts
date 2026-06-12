@@ -21,8 +21,17 @@ export async function POST(req: Request) {
   const { message, recipientType } = await req.json()
   if (!message?.trim()) return NextResponse.json({ error: 'Message is required' }, { status: 400 })
 
-  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
-    return NextResponse.json({ error: 'Twilio environment variables not configured' }, { status: 500 })
+  const missingVars = [
+    !process.env.TWILIO_ACCOUNT_SID && 'TWILIO_ACCOUNT_SID',
+    !process.env.TWILIO_AUTH_TOKEN && 'TWILIO_AUTH_TOKEN',
+    !process.env.TWILIO_PHONE_NUMBER && 'TWILIO_PHONE_NUMBER',
+  ].filter(Boolean) as string[]
+
+  if (missingVars.length > 0) {
+    return NextResponse.json(
+      { error: `Missing Twilio env vars: ${missingVars.join(', ')} — check Vercel dashboard and redeploy` },
+      { status: 500 }
+    )
   }
 
   // Fetch phone numbers based on recipient type

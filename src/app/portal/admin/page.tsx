@@ -543,6 +543,7 @@ export default function AdminPage() {
 }
 
 function ReservationsAdmin() {
+  const [tournamentRegs, setTournamentRegs] = useState<any[]>([])
   const [reservations, setReservations] = useState<any[]>([])
   const [signedUpEmails, setSignedUpEmails] = useState<Set<string>>(new Set())
   const [sendingId, setSendingId] = useState<string | null>(null)
@@ -551,6 +552,13 @@ function ReservationsAdmin() {
   const [sendMsg, setSendMsg] = useState<{ id: string; ok: boolean; text: string } | null>(null)
 
   const load = async () => {
+    const { data: regs } = await supabase
+      .from('tournament_registrations')
+      .select('player_id, created_at, profiles(full_name, nickname, email, phone_number, handicap)')
+      .eq('tournament_year', CURRENT_YEAR)
+      .order('created_at', { ascending: true })
+    setTournamentRegs(regs || [])
+
     const { data } = await supabase.from('reservations')
       .select('*, reserver:profiles!reserver_id(full_name)')
       .order('created_at', { ascending: false })
@@ -612,10 +620,51 @@ function ReservationsAdmin() {
   }
 
   return (
-    <div className="card">
-      <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>All Reservations ({reservations.length})</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+      {/* Registered Players */}
+      <div className="card">
+        <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>
+          Registered Players <span style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-muted)' }}>({tournamentRegs.length})</span>
+        </h2>
+        {tournamentRegs.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No players registered yet</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+            {tournamentRegs.map((r: any, i: number) => {
+              const prof = r.profiles as any
+              const name = prof?.nickname?.trim() || prof?.full_name || 'Unknown'
+              return (
+                <div key={r.player_id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--navy-light)', borderRadius: '0.875rem', padding: '0.875rem 1.1rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', width: '1.5rem', textAlign: 'center', flexShrink: 0 }}>#{i + 1}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontWeight: 700, color: 'var(--white)', marginBottom: '0.15rem' }}>{name}</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      {prof?.email}
+                      {prof?.phone_number && <span> · {prof.phone_number}</span>}
+                      {prof?.handicap != null && <span> · HCP {prof.handicap}</span>}
+                    </p>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <span style={{ padding: '0.25rem 0.75rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(201,168,76,0.12)', color: 'var(--gold)', border: '1px solid rgba(201,168,76,0.3)' }}>
+                      ✓ Registered
+                    </span>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
+                      {format(new Date(r.created_at), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Guest Invitations */}
+      <div className="card">
+      <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Guest Invitations ({reservations.length})</h2>
       {reservations.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No reservations yet</p>
+        <p style={{ color: 'var(--text-muted)' }}>No guest invitations yet</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {reservations.map(r => {
@@ -688,6 +737,8 @@ function ReservationsAdmin() {
           })}
         </div>
       )}
+      </div>
+
     </div>
   )
 }

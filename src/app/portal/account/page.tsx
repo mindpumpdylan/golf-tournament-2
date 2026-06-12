@@ -21,6 +21,7 @@ export default function AccountPage() {
   const [ghin, setGhin] = useState('')
   const [phone, setPhone] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
+  const [registration, setRegistration] = useState<any>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -117,6 +118,9 @@ export default function AccountPage() {
 
     const { data: res } = await supabase.from('reservations').select('*').eq('reserver_id', uid).order('created_at', { ascending: false })
     setReservations(res || [])
+
+    const { data: reg } = await supabase.from('tournament_registrations').select('tournament_year, created_at').eq('player_id', uid).eq('tournament_year', CURRENT_YEAR).maybeSingle()
+    setRegistration(reg || null)
 
     const { data: member } = await supabase.from('team_members').select('team_id, teams(*)').eq('player_id', uid).maybeSingle()
     if (member?.team_id) {
@@ -377,30 +381,59 @@ export default function AccountPage() {
 
       {/* Reservations Tab */}
       {tab === 'reservations' && (
-        <div className="card">
-          <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>My Reservations</h2>
-          {reservations.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>No reservations yet. Go to My Spots to invite guests!</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {reservations.map(r => (
-                <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
-                  <div>
-                    <p style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{r.guest_name}</p>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{r.guest_email}</p>
-                    {r.invite_expires_at && r.status === 'pending' && (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--gold)', marginTop: '0.2rem' }}>
-                        Expires {format(new Date(r.invite_expires_at), 'MMM d, yyyy')}
-                      </p>
-                    )}
-                  </div>
-                  <span style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'capitalize', ...statusStyle(r.status) }}>
-                    {r.status}
-                  </span>
-                </div>
-              ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* Tournament spot card */}
+          <div className="card">
+            <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>{CURRENT_YEAR} Tournament Spot</h2>
+            <div style={{ background: registration ? 'rgba(201,168,76,0.08)' : 'rgba(61,50,32,0.3)', border: `1px solid ${registration ? 'rgba(201,168,76,0.3)' : 'var(--navy-border)'}`, borderRadius: '1rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+              <div>
+                <p style={{ fontWeight: 700, fontSize: '1.05rem', color: registration ? 'var(--gold)' : 'var(--white)', marginBottom: '0.2rem' }}>
+                  {registration ? '✓ Spot Reserved' : 'Not yet registered'}
+                </p>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                  {registration
+                    ? `Registered ${format(new Date(registration.created_at), 'MMM d, yyyy')}`
+                    : 'Register on the home page to secure your spot'}
+                </p>
+              </div>
+              {!registration && (
+                <a href="/portal" style={{ padding: '0.5rem 1.1rem', borderRadius: '0.75rem', background: 'var(--gold)', color: '#0d0f0a', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>
+                  Register Now
+                </a>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Guest invitations */}
+          <div className="card">
+            <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Guest Invitations</h2>
+            {reservations.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                No guest invitations sent yet. Go to <a href="/portal/reservations" style={{ color: 'var(--gold)' }}>My Spots</a> to invite guests.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {reservations.map(r => (
+                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
+                    <div>
+                      <p style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{r.guest_name}</p>
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{r.guest_email}</p>
+                      {r.invite_expires_at && r.status === 'pending' && (
+                        <p style={{ fontSize: '0.8rem', color: 'var(--gold)', marginTop: '0.2rem' }}>
+                          Expires {format(new Date(r.invite_expires_at), 'MMM d, yyyy')}
+                        </p>
+                      )}
+                    </div>
+                    <span style={{ padding: '0.3rem 0.85rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, textTransform: 'capitalize', ...statusStyle(r.status) }}>
+                      {r.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
       )}
 
