@@ -188,8 +188,10 @@ export default function AccountPage() {
               onTouchStart={e => {
                 e.preventDefault()
                 if (e.touches.length === 2) {
+                  cropEnd()
                   setPinchRef({ dist: getTouchDist(e.touches), scale: cropScale })
                 } else {
+                  setPinchRef(null)
                   cropStart(e.touches[0].clientX, e.touches[0].clientY)
                 }
               }}

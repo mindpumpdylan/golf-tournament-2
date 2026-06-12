@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = await new Promise<any>((resolve, reject) => {
       cloudinary.uploader.upload_stream(
-        { folder: 'high-country-classic/avatars', resource_type: 'image', transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face' }] },
+        { folder: 'high-country-classic/avatars', resource_type: 'image' },
         (err, res) => err ? reject(err) : resolve(res)
       ).end(buffer)
     })
