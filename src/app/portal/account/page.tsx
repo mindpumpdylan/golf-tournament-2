@@ -33,6 +33,7 @@ export default function AccountPage() {
   const [cropScale, setCropScale] = useState(1)
   const [cropNatural, setCropNatural] = useState({ w: 0, h: 0 })
   const [cropDrag, setCropDrag] = useState<{ sx: number; sy: number; ox: number; oy: number } | null>(null)
+  const [pinchRef, setPinchRef] = useState<{ dist: number; scale: number } | null>(null)
 
   const fillScale = cropNatural.w && cropNatural.h
     ? Math.max(CROP_SIZE / cropNatural.w, CROP_SIZE / cropNatural.h)
@@ -41,6 +42,12 @@ export default function AccountPage() {
   const dispH = cropNatural.h * fillScale * cropScale
   const imgLeft = CROP_SIZE / 2 + cropOffset.x - dispW / 2
   const imgTop  = CROP_SIZE / 2 + cropOffset.y - dispH / 2
+
+  const getTouchDist = (touches: React.TouchList) => {
+    const dx = touches[0].clientX - touches[1].clientX
+    const dy = touches[0].clientY - touches[1].clientY
+    return Math.sqrt(dx * dx + dy * dy)
+  }
 
   const cropStart = (clientX: number, clientY: number) =>
     setCropDrag({ sx: clientX, sy: clientY, ox: cropOffset.x, oy: cropOffset.y })
@@ -72,12 +79,17 @@ export default function AccountPage() {
         const res = await fetch('/api/upload-avatar', { method: 'POST', body: fd })
         const json = await res.json()
         if (json.url) {
-          setAvatarUrl(json.url)
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session) {
-            const { error } = await supabase.from('profiles').update({ avatar_url: json.url }).eq('id', session.user.id)
-            if (error) setMessage('Cloudinary uploaded but DB save failed: ' + error.message)
-            else { setMessage('Photo updated!'); load() }
+          const { data: { session: s2 } } = await supabase.auth.getSession()
+          if (s2) {
+            const { error } = await supabase.from('profiles').update({ avatar_url: json.url }).eq('id', s2.user.id)
+            if (error) {
+              setMessage('⚠️ Photo uploaded but not saved to profile — run the SQL migration (ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url text). Error: ' + error.message)
+              setAvatarUrl(json.url)
+            } else {
+              setMessage('Photo updated!')
+              await load()
+              setAvatarUrl(json.url)
+            }
           }
         } else {
           setMessage(json.error || 'Upload failed — check Cloudinary env vars')
@@ -163,7 +175,7 @@ export default function AccountPage() {
           <div style={{ background: '#111a0f', border: '1px solid #3d3220', borderRadius: '1.5rem', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem', maxWidth: '360px', width: '100%' }}>
             <div style={{ textAlign: 'center' }}>
               <h3 style={{ fontSize: '1.2rem', color: '#c9a84c', margin: '0 0 0.25rem' }}>Frame Your Photo</h3>
-              <p style={{ fontSize: '0.8rem', color: '#8b7d6b', margin: 0 }}>Drag to reposition · Slider to zoom</p>
+              <p style={{ fontSize: '0.8rem', color: '#8b7d6b', margin: 0 }}>Drag to reposition · Pinch to zoom</p>
             </div>
 
             {/* Circular crop area */}
@@ -173,9 +185,24 @@ export default function AccountPage() {
               onMouseMove={e => cropMove(e.clientX, e.clientY)}
               onMouseUp={cropEnd}
               onMouseLeave={cropEnd}
-              onTouchStart={e => { e.preventDefault(); cropStart(e.touches[0].clientX, e.touches[0].clientY) }}
-              onTouchMove={e => { e.preventDefault(); cropMove(e.touches[0].clientX, e.touches[0].clientY) }}
-              onTouchEnd={cropEnd}
+              onTouchStart={e => {
+                e.preventDefault()
+                if (e.touches.length === 2) {
+                  setPinchRef({ dist: getTouchDist(e.touches), scale: cropScale })
+                } else {
+                  cropStart(e.touches[0].clientX, e.touches[0].clientY)
+                }
+              }}
+              onTouchMove={e => {
+                e.preventDefault()
+                if (e.touches.length === 2 && pinchRef) {
+                  const ratio = getTouchDist(e.touches) / pinchRef.dist
+                  setCropScale(Math.max(0.5, Math.min(3, pinchRef.scale * ratio)))
+                } else if (e.touches.length === 1) {
+                  cropMove(e.touches[0].clientX, e.touches[0].clientY)
+                }
+              }}
+              onTouchEnd={() => { setPinchRef(null); cropEnd() }}
             >
               <img
                 src={cropSrc}

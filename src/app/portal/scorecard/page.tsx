@@ -200,13 +200,13 @@ function ScorecardTable({
   canEdit: boolean
 }) {
   return (
-    <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: '1.5rem', overflow: 'hidden' }}>
-      <div style={{ padding: '0.875rem 1.25rem', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+    <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: '1.5rem', overflowX: 'auto', overflowY: 'hidden' }}>
+      <div style={{ padding: '0.875rem 1.25rem', borderBottom: `1px solid ${BORDER}`, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '600px' }}>
         <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', color: MUTED }}>{label}</span>
         <span style={{ fontSize: '0.72rem', color: BORDER }}>·</span>
         <span style={{ fontSize: '0.72rem', color: MUTED }}>Apple Mountain Golf Resort</span>
       </div>
-      <div style={{ overflowX: 'auto' }}>
+      <div>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: '600px' }}>
           <tbody>
 

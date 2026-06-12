@@ -33,13 +33,13 @@ export default function AvailabilityPage() {
       return new Date(y, m - 1, day)
     }))
 
-    // All players' votes
-    const { data: allDates } = await supabase
-      .from('availability_dates').select('date').eq('tournament_year', CURRENT_YEAR)
-    if (allDates) {
-      const counts: Record<string, number> = {}
-      allDates.forEach((d: any) => { counts[d.date] = (counts[d.date] || 0) + 1 })
-      setVoteCounts(counts)
+    // All players' votes — use service-role API to bypass RLS
+    const avRes = await fetch('/api/availability-summary', {
+      headers: { Authorization: `Bearer ${session.access_token}` }
+    })
+    if (avRes.ok) {
+      const { counts } = await avRes.json()
+      setVoteCounts(counts as Record<string, number>)
     }
 
     // Total player count for percentages
