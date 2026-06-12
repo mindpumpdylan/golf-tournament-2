@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { v2 as cloudinary } from 'cloudinary'
 
 export async function POST(req: NextRequest) {
+  const missingCloudinary = [
+    !process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && 'NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME',
+    !process.env.CLOUDINARY_API_KEY && 'CLOUDINARY_API_KEY',
+    !process.env.CLOUDINARY_API_SECRET && 'CLOUDINARY_API_SECRET',
+  ].filter(Boolean) as string[]
+
+  if (missingCloudinary.length > 0) {
+    return NextResponse.json({ error: `Missing env vars: ${missingCloudinary.join(', ')} — add them in Vercel dashboard` }, { status: 500 })
+  }
+
   cloudinary.config({
     cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
