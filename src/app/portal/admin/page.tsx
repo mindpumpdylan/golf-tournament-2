@@ -122,6 +122,12 @@ export default function AdminPage() {
     loadAll()
   }
 
+  const handleRemoveRegistration = async (playerId: string, name: string) => {
+    if (!window.confirm(`Remove ${name} from the ${CURRENT_YEAR} tournament? Their account stays intact.`)) return
+    await supabase.from('tournament_registrations').delete().eq('player_id', playerId).eq('tournament_year', CURRENT_YEAR)
+    loadAll()
+  }
+
   const handleSaveTeeTime = async (teamId: string) => {
     setSavingTeeTime(teamId)
     await supabase.from('teams').update({ tee_time: teeTimeInputs[teamId] || null }).eq('id', teamId)
@@ -330,9 +336,16 @@ export default function AdminPage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   {registeredIds.has(p.id) && (
-                    <span style={{ padding: '0.25rem 0.7rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(201,168,76,0.12)', color: 'var(--gold)', border: '1px solid rgba(201,168,76,0.3)' }}>
-                      ✓ Registered
-                    </span>
+                    <>
+                      <span style={{ padding: '0.25rem 0.7rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, background: 'rgba(201,168,76,0.12)', color: 'var(--gold)', border: '1px solid rgba(201,168,76,0.3)' }}>
+                        ✓ Registered
+                      </span>
+                      <button
+                        onClick={() => handleRemoveRegistration(p.id, getDisplayName(p))}
+                        style={{ padding: '0.3rem 0.7rem', borderRadius: '0.625rem', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', background: 'none', border: '1px solid rgba(255,107,107,0.25)', color: '#ff8f8f', whiteSpace: 'nowrap' }}>
+                        Remove
+                      </button>
+                    </>
                   )}
                   {p.is_admin && <span className="badge-gold">Admin</span>}
                   <button
@@ -582,7 +595,7 @@ function ReservationsAdmin() {
     if (r.guest_email) {
       const res = await fetch('/api/invite', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: r.guest_email, name: r.guest_name, token, inviter: 'High Country Classic' })
+        body: JSON.stringify({ email: r.guest_email, name: r.guest_name, token, inviter: 'High Country Classic', phone: r.guest_phone || undefined })
       })
       emailOk = res.ok
     }
@@ -594,6 +607,12 @@ function ReservationsAdmin() {
 
   const handleExpire = async (id: string) => {
     await supabase.from('reservations').update({ status: 'expired' }).eq('id', id)
+    load()
+  }
+
+  const handleDeleteReservation = async (id: string) => {
+    if (!window.confirm('Delete this invitation permanently? This cannot be undone.')) return
+    await supabase.from('reservations').delete().eq('id', id)
     load()
   }
 
@@ -726,10 +745,15 @@ function ReservationsAdmin() {
 
                     {/* Expire — only for pending */}
                     {r.status === 'pending' && hasToken && (
-                      <button onClick={() => handleExpire(r.id)} style={{ padding: '0.35rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'none', border: '1px solid rgba(255,107,107,0.3)', color: '#ff6b6b', marginLeft: 'auto' }}>
+                      <button onClick={() => handleExpire(r.id)} style={{ padding: '0.35rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'none', border: '1px solid rgba(255,107,107,0.3)', color: '#ff6b6b' }}>
                         Expire
                       </button>
                     )}
+
+                    {/* Delete */}
+                    <button onClick={() => handleDeleteReservation(r.id)} style={{ padding: '0.35rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'none', border: '1px solid rgba(255,107,107,0.2)', color: '#ff6b6b', marginLeft: 'auto', opacity: 0.7 }}>
+                      🗑 Delete
+                    </button>
                   </div>
                 )}
               </div>

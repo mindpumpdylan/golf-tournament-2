@@ -30,6 +30,9 @@ export async function POST(req: NextRequest) {
     })
     return NextResponse.json({ url: result.secure_url })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Cloudinary upload failed' }, { status: 500 })
+    return NextResponse.json({
+      error: err.message || 'Cloudinary upload failed',
+      detail: err.http_code ? `HTTP ${err.http_code}` : undefined,
+    }, { status: 500 })
   }
 }

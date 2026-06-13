@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import twilio from 'twilio'
 
 export async function POST(req: NextRequest) {
   const resend = new Resend(process.env.RESEND_API_KEY)
-  const { email, name, token, inviter } = await req.json()
+  const { email, name, token, inviter, phone } = await req.json()
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
   const link = `${siteUrl}/signup?token=${token}`
 
@@ -30,6 +31,17 @@ export async function POST(req: NextRequest) {
       </div>
     `
   })
+
+  if (phone && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+    try {
+      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+      await client.messages.create({
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: phone,
+        body: `Hey ${name}! You've been invited to the High Country Classic at Apple Mountain Golf Resort. Claim your spot here: ${link}`,
+      })
+    } catch {}
+  }
 
   return NextResponse.json({ success: true })
 }

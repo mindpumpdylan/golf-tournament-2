@@ -34,7 +34,8 @@ export default function AccountPage() {
   const [cropScale, setCropScale] = useState(1)
   const [cropNatural, setCropNatural] = useState({ w: 0, h: 0 })
   const [cropDrag, setCropDrag] = useState<{ sx: number; sy: number; ox: number; oy: number } | null>(null)
-  const [pinchRef, setPinchRef] = useState<{ dist: number; scale: number } | null>(null)
+  const [pinchRef, setPinchRef] = useState<{ dist: number; scale: number; mx: number; my: number; imgLeft: number; imgTop: number } | null>(null)
+  const cropAreaRef = useRef<HTMLDivElement>(null)
 
   const fillScale = cropNatural.w && cropNatural.h
     ? Math.max(CROP_SIZE / cropNatural.w, CROP_SIZE / cropNatural.h)
@@ -184,6 +185,7 @@ export default function AccountPage() {
 
             {/* Circular crop area */}
             <div
+              ref={cropAreaRef}
               style={{ width: CROP_SIZE, height: CROP_SIZE, borderRadius: '50%', overflow: 'hidden', cursor: cropDrag ? 'grabbing' : 'grab', position: 'relative', border: '3px solid rgba(201,168,76,0.5)', flexShrink: 0, userSelect: 'none', touchAction: 'none', background: '#0d0f0a' }}
               onMouseDown={e => cropStart(e.clientX, e.clientY)}
               onMouseMove={e => cropMove(e.clientX, e.clientY)}
@@ -193,7 +195,10 @@ export default function AccountPage() {
                 e.preventDefault()
                 if (e.touches.length === 2) {
                   cropEnd()
-                  setPinchRef({ dist: getTouchDist(e.touches), scale: cropScale })
+                  const rect = cropAreaRef.current?.getBoundingClientRect()
+                  const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - (rect?.left ?? 0)
+                  const my = (e.touches[0].clientY + e.touches[1].clientY) / 2 - (rect?.top ?? 0)
+                  setPinchRef({ dist: getTouchDist(e.touches), scale: cropScale, mx, my, imgLeft, imgTop })
                 } else {
                   setPinchRef(null)
                   cropStart(e.touches[0].clientX, e.touches[0].clientY)
@@ -202,8 +207,15 @@ export default function AccountPage() {
               onTouchMove={e => {
                 e.preventDefault()
                 if (e.touches.length === 2 && pinchRef) {
-                  const ratio = getTouchDist(e.touches) / pinchRef.dist
-                  setCropScale(Math.max(0.5, Math.min(3, pinchRef.scale * ratio)))
+                  const rawRatio = getTouchDist(e.touches) / pinchRef.dist
+                  const newScale = Math.max(0.5, Math.min(3, pinchRef.scale * rawRatio))
+                  const scaleRatio = newScale / pinchRef.scale
+                  const newImgLeft = pinchRef.mx - (pinchRef.mx - pinchRef.imgLeft) * scaleRatio
+                  const newImgTop  = pinchRef.my - (pinchRef.my - pinchRef.imgTop)  * scaleRatio
+                  const newDispW = cropNatural.w * fillScale * newScale
+                  const newDispH = cropNatural.h * fillScale * newScale
+                  setCropScale(newScale)
+                  setCropOffset({ x: newImgLeft - CROP_SIZE / 2 + newDispW / 2, y: newImgTop - CROP_SIZE / 2 + newDispH / 2 })
                 } else if (e.touches.length === 1) {
                   cropMove(e.touches[0].clientX, e.touches[0].clientY)
                 }

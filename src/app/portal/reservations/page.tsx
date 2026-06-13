@@ -64,7 +64,7 @@ function GuestStatusBadge({ signedUp, status, reserved }: { signedUp: boolean; s
 export default function ReservationsPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [reservations, setReservations] = useState<any[]>([])
-  const [players, setPlayers] = useState<Profile[]>([])
+
   const [showForm, setShowForm] = useState(false)
   const [inviteMode, setInviteMode] = useState<'invite' | 'reserve'>('invite')
   const [form, setForm] = useState({ guest_name: '', guest_email: '', guest_phone: '', pairing_preference: '' })
@@ -119,8 +119,7 @@ export default function ReservationsPage() {
       }
     }
 
-    const { data: pl } = await supabase.from('profiles').select('*').neq('id', uid).order('full_name')
-    setPlayers(pl || [])
+
   }
 
   useEffect(() => { load() }, [])
@@ -423,12 +422,25 @@ export default function ReservationsPage() {
               <input className="input" type="tel" value={form.guest_phone} onChange={e => setForm({ ...form, guest_phone: e.target.value })} placeholder="(555) 555-5555" />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: MUTED, marginBottom: '0.5rem', letterSpacing: '0.05em' }}>ADDITIONAL PAIRING PREFERENCE (optional)</label>
-              <select className="input" value={form.pairing_preference} onChange={e => setForm({ ...form, pairing_preference: e.target.value })}>
-                <option value="">No preference — pair me with my guest</option>
-                {players.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
-              </select>
-              <p style={{ fontSize: '0.78rem', color: MUTED, marginTop: '0.4rem' }}>You'll automatically be paired with your guest. Select an extra player here if desired.</p>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: MUTED, marginBottom: '0.5rem', letterSpacing: '0.05em' }}>PAIR ME WITH MY GUEST?</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {(['yes', 'no'] as const).map(v => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setForm({ ...form, pairing_preference: form.pairing_preference === v ? '' : v })}
+                    style={{
+                      flex: 1, padding: '0.6rem 1rem', borderRadius: '0.75rem', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+                      background: form.pairing_preference === v ? 'rgba(201,168,76,0.15)' : 'rgba(61,50,32,0.3)',
+                      border: `1px solid ${form.pairing_preference === v ? 'rgba(201,168,76,0.4)' : 'rgba(61,50,32,0.6)'}`,
+                      color: form.pairing_preference === v ? GOLD : MUTED,
+                    }}
+                  >
+                    {v === 'yes' ? 'Yes — keep us together' : 'No — distribute by handicap'}
+                  </button>
+                ))}
+              </div>
+              <p style={{ fontSize: '0.78rem', color: MUTED, marginTop: '0.4rem' }}>If no selection, admin will decide pairing during team building.</p>
             </div>
             <div>
               <button type="submit" className="btn-electric" disabled={submitting}>
