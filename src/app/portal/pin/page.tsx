@@ -100,11 +100,7 @@ export default function PinPage() {
             </select>
           </div>
 
-          {selectedHole && (
-            <div style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.15)', borderRadius: '0.875rem', padding: '0.75rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              <span style={{ color: 'var(--electric)', fontWeight: 700 }}>Hole {selectedHole.number}: {selectedHole.name}</span> · {selectedHole.yards} yards
-            </div>
-          )}
+
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div>
