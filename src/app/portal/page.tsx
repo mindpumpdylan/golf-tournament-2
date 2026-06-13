@@ -33,7 +33,7 @@ export default function PortalHome() {
   const [myScores, setMyScores] = useState<any[]>([])
   const [pinLeaders, setPinLeaders] = useState<any[]>([])
   const [recentPhotos, setRecentPhotos] = useState<any[]>([])
-  const [totalPlayers, setTotalPlayers] = useState(0)
+
   const [myGuestCount, setMyGuestCount] = useState(0)
   const [isRegistered, setIsRegistered] = useState(true)
   const [registering, setRegistering] = useState(false)
@@ -75,8 +75,7 @@ export default function PortalHome() {
         }
       } catch {}
 
-      const { count: playerCount } = await supabase.from('profiles').select('id', { count: 'exact' })
-      setTotalPlayers(playerCount || 0)
+
 
       const { count: guestCount } = await supabase.from('reservations').select('id', { count: 'exact' }).eq('reserver_id', uid).in('status', ['pending', 'confirmed'])
       setMyGuestCount(guestCount || 0)
@@ -275,13 +274,10 @@ export default function PortalHome() {
                   <p style={{ color: MUTED, fontSize: '0.85rem' }}>No votes yet — be the first!</p>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    {topDates.map(({ date, count }) => (
+                    {topDates.map(({ date }, idx) => (
                       <div key={date} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, flex: 1, color: CREAM }}>{new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-                        <div style={{ width: '80px', height: '4px', background: CARD_MID, borderRadius: '999px', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', background: GOLD, borderRadius: '999px', width: (count / Math.max(totalPlayers, 1) * 100) + '%' }} />
-                        </div>
-                        <span style={{ fontSize: '0.75rem', color: GOLD, fontWeight: 700, width: '28px', textAlign: 'right' }}>{count}</span>
+                        <span style={{ fontSize: '1.1rem', width: '24px', textAlign: 'center' }}>{idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}</span>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: CREAM }}>{new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                       </div>
                     ))}
                   </div>
