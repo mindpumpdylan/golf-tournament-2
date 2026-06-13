@@ -20,6 +20,10 @@ export default function AccountPage() {
   const [handicap, setHandicap] = useState('')
   const [ghin, setGhin] = useState('')
   const [phone, setPhone] = useState('')
+  const [bio, setBio] = useState('')
+  const [homeCourse, setHomeCourse] = useState('')
+  const [yearsPlaying, setYearsPlaying] = useState('')
+  const [shirtSize, setShirtSize] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [registration, setRegistration] = useState<any>(null)
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -115,6 +119,10 @@ export default function AccountPage() {
     setHandicap(prof?.handicap?.toString() || '')
     setGhin(prof?.ghin_number || '')
     setPhone(prof?.phone_number || '')
+    setBio(prof?.bio || '')
+    setHomeCourse(prof?.home_course || '')
+    setYearsPlaying(prof?.years_playing?.toString() || '')
+    setShirtSize(prof?.shirt_size || '')
     setAvatarUrl(prof?.avatar_url || '')
 
     const { data: res } = await supabase.from('reservations').select('*').eq('reserver_id', uid).order('created_at', { ascending: false })
@@ -148,6 +156,10 @@ export default function AccountPage() {
       handicap: parseFloat(handicap) || null,
       ghin_number: ghin || null,
       phone_number: phone.trim() || null,
+      bio: bio.trim() || null,
+      home_course: homeCourse.trim() || null,
+      years_playing: parseInt(yearsPlaying) || null,
+      shirt_size: shirtSize || null,
     }).eq('id', session.user.id)
     setMessage(error ? 'Save failed: ' + error.message : 'Profile updated!')
     setTimeout(() => setMessage(''), 3000)
@@ -375,6 +387,27 @@ export default function AccountPage() {
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>PHONE NUMBER <span style={{ fontWeight: 400, fontSize: '0.72rem', letterSpacing: 0, textTransform: 'none' }}>(optional — visible to admin)</span></label>
               <input className="input" type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 555-5555" autoComplete="tel" />
+            </div>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>BIO <span style={{ fontWeight: 400, fontSize: '0.72rem', letterSpacing: 0, textTransform: 'none' }}>(optional — {160 - bio.length} chars left)</span></label>
+              <textarea className="input" value={bio} onChange={e => setBio(e.target.value.slice(0, 160))} placeholder="Tell us about your golf game..." rows={3} style={{ resize: 'vertical', fontFamily: 'inherit' }} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>HOME COURSE</label>
+                <input className="input" type="text" value={homeCourse} onChange={e => setHomeCourse(e.target.value)} placeholder="e.g. Pebble Beach" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>YEARS PLAYING</label>
+                <input className="input" type="number" min="0" max="80" value={yearsPlaying} onChange={e => setYearsPlaying(e.target.value)} placeholder="e.g. 15" />
+              </div>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.05em' }}>SHIRT SIZE <span style={{ fontWeight: 400, fontSize: '0.72rem', letterSpacing: 0, textTransform: 'none' }}>(for tournament swag)</span></label>
+              <select className="input" value={shirtSize} onChange={e => setShirtSize(e.target.value)}>
+                <option value="">Select size...</option>
+                {['S', 'M', 'L', 'XL', 'XXL'].map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
             <button onClick={handleSaveProfile} className="btn-electric" disabled={saving} style={{ alignSelf: 'flex-start' }}>
               {saving ? 'Saving...' : 'Save Profile'}

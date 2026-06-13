@@ -44,6 +44,9 @@ export default function AdminPage() {
   const [tournamentStatus, setTournamentStatus] = useState('pre-tournament')
   const [updatingStatus, setUpdatingStatus] = useState(false)
 
+  // Pairing requests state
+  const [confirmedPairs, setConfirmedPairs] = useState<any[]>([])
+
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { router.push('/login'); return }
@@ -104,6 +107,13 @@ export default function AdminPage() {
       const { data: statusRow } = await supabase.from('tournament_settings').select('value').eq('key', 'status').maybeSingle()
       if (statusRow?.value) setTournamentStatus(statusRow.value)
     } catch {}
+
+    const { data: pairs } = await supabase
+      .from('pairing_requests')
+      .select('id, requester_id, target_id, requester:profiles!pairing_requests_requester_id_fkey(full_name, nickname), target:profiles!pairing_requests_target_id_fkey(full_name, nickname)')
+      .eq('tournament_year', CURRENT_YEAR)
+      .eq('status', 'accepted')
+    setConfirmedPairs(pairs || [])
   }
 
   const handleCreateTeam = async () => {
@@ -309,6 +319,25 @@ export default function AdminPage() {
 
       {/* PLAYERS TAB */}
       {tab === 'players' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+        {confirmedPairs.length > 0 && (
+          <div className="card">
+            <h2 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: 'var(--gold)' }}>⛳ Confirmed Pairing Requests</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {confirmedPairs.map(pair => (
+                <div key={pair.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(0,255,135,0.06)', border: '1px solid rgba(0,255,135,0.2)', borderRadius: '0.875rem', padding: '0.65rem 1rem' }}>
+                  <span style={{ color: '#00ff87', fontSize: '0.9rem' }}>✅</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{getDisplayName(pair.requester)}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>+</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{getDisplayName(pair.target)}</span>
+                  <span style={{ fontSize: '0.8rem', color: '#00ff87', marginLeft: 'auto', whiteSpace: 'nowrap' }}>want to play together</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
             <h2 style={{ fontSize: '1.3rem' }}>Players ({players.length})</h2>
@@ -360,6 +389,7 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+        </div>
         </div>
       )}
 

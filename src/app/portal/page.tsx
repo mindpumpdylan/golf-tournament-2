@@ -37,6 +37,7 @@ export default function PortalHome() {
   const [myGuestCount, setMyGuestCount] = useState(0)
   const [isRegistered, setIsRegistered] = useState(true)
   const [registering, setRegistering] = useState(false)
+  const [pendingPairingRequests, setPendingPairingRequests] = useState<any[]>([])
   const [tournamentStatus, setTournamentStatus] = useState('')
   const [tournamentDate, setTournamentDate] = useState('')
   const [videoMuted, setVideoMuted] = useState(true)
@@ -111,6 +112,14 @@ export default function PortalHome() {
       const { data: reg } = await supabase.from('tournament_registrations').select('id').eq('player_id', uid).eq('tournament_year', CURRENT_YEAR).maybeSingle()
       setIsRegistered(!!reg)
 
+      const { data: pairingReqs } = await supabase
+        .from('pairing_requests')
+        .select('id, requester_id, profiles!pairing_requests_requester_id_fkey(full_name, nickname, avatar_url)')
+        .eq('target_id', uid)
+        .eq('tournament_year', CURRENT_YEAR)
+        .eq('status', 'pending')
+      setPendingPairingRequests(pairingReqs || [])
+
       try {
         const { data: settingsRows } = await supabase.from('tournament_settings').select('key, value').in('key', ['status', 'date'])
         settingsRows?.forEach((r: any) => {
@@ -172,6 +181,29 @@ export default function PortalHome() {
           <button onClick={handleRegister} disabled={registering} className="btn-electric" style={{ whiteSpace: 'nowrap', fontSize: '0.9rem' }}>
             {registering ? 'Registering...' : `Register for ${CURRENT_YEAR}`}
           </button>
+        </div>
+      )}
+
+      {pendingPairingRequests.length > 0 && !loading && (
+        <div style={{ background: 'rgba(0,255,135,0.05)', border: '1px solid rgba(0,255,135,0.2)', borderRadius: '1.5rem', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <p style={{ fontWeight: 700, fontSize: '0.88rem', color: '#00ff87', letterSpacing: '0.05em' }}>⛳ PAIRING REQUESTS</p>
+          {pendingPairingRequests.map((r: any) => (
+            <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '999px', overflow: 'hidden', background: GOLD, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#0d0f0a', flexShrink: 0 }}>
+                  {r.profiles?.avatar_url
+                    ? <img src={r.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : (r.profiles?.full_name?.charAt(0) || '?')}
+                </div>
+                <span style={{ fontSize: '0.9rem', color: CREAM, fontWeight: 600 }}>
+                  {displayName(r.profiles)} wants to play with you
+                </span>
+              </div>
+              <Link href={`/portal/players/${r.requester_id}`} style={{ fontSize: '0.82rem', fontWeight: 700, color: '#00ff87', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                View &amp; Respond →
+              </Link>
+            </div>
+          ))}
         </div>
       )}
 

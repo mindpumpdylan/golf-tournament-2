@@ -14,6 +14,7 @@ const navItems = [
   { href: '/portal/scorecard', label: 'Scorecard' },
   { href: '/portal/pin', label: 'Pin' },
   { href: '/portal/gallery', label: 'Gallery' },
+  { href: '/portal/players', label: 'Players' },
 ]
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -266,4 +267,5 @@ const NAV_ICONS: Record<string, string> = {
   '/portal/scorecard': '📋',
   '/portal/pin': '📍',
   '/portal/gallery': '📷',
+  '/portal/players': '👥',
 }
