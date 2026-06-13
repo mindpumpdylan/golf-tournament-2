@@ -155,8 +155,16 @@ export default function PinPage() {
                         {entry.distance_feet}'{entry.distance_inches}"
                       </span>
                       {isAdmin && (
-                        <button onClick={async () => { await supabase.from('closest_to_pin').delete().eq('id', entry.id); load() }}
-                          style={{ background: 'none', border: 'none', color: '#ff6b6b', cursor: 'pointer', fontSize: '0.8rem' }}>✕</button>
+                        <button onClick={async () => {
+                          const { data: { session } } = await supabase.auth.getSession()
+                          if (!session) return
+                          await fetch('/api/admin/delete-pin-entry', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                            body: JSON.stringify({ id: entry.id }),
+                          })
+                          load()
+                        }} style={{ background: 'none', border: 'none', color: '#ff6b6b', cursor: 'pointer', fontSize: '0.8rem' }}>✕</button>
                       )}
                     </div>
                   </div>

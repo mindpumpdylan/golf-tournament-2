@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { CURRENT_YEAR } from '@/lib/constants'
+import { CURRENT_YEAR, HOLES, PAR } from '@/lib/constants'
 import { format } from 'date-fns'
 import { displayName as getDisplayName } from '@/lib/utils'
 
@@ -29,7 +29,7 @@ export default function AdminPage() {
   const [teamName, setTeamName] = useState('')
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([])
   const [message, setMessage] = useState('')
-  const [tab, setTab] = useState<'availability' | 'players' | 'teams' | 'reservations' | 'announce' | 'settings'>('availability')
+  const [tab, setTab] = useState<'availability' | 'players' | 'teams' | 'reservations' | 'scorecards' | 'pin' | 'announce' | 'settings'>('availability')
 
   // Tee time + lock state
   const [teeTimeInputs, setTeeTimeInputs] = useState<{ [id: string]: string }>({})
@@ -196,6 +196,8 @@ export default function AdminPage() {
     { key: 'players', label: 'Players' },
     { key: 'teams', label: 'Teams' },
     { key: 'reservations', label: 'Reservations' },
+    { key: 'scorecards', label: '🏌️ Scorecards' },
+    { key: 'pin', label: '📍 Pin' },
     { key: 'announce', label: '📣 Announce' },
     { key: 'settings', label: 'Settings' },
   ]
@@ -497,6 +499,12 @@ export default function AdminPage() {
       {/* RESERVATIONS TAB */}
       {tab === 'reservations' && <ReservationsAdmin />}
 
+      {/* SCORECARDS TAB */}
+      {tab === 'scorecards' && <ScorecardAdmin />}
+
+      {/* PIN TAB */}
+      {tab === 'pin' && <PinAdmin />}
+
       {/* ANNOUNCE TAB */}
       {tab === 'announce' && <AnnounceAdmin players={players} registeredIds={registeredIds} />}
 
@@ -612,7 +620,12 @@ function ReservationsAdmin() {
 
   const handleDeleteReservation = async (id: string) => {
     if (!window.confirm('Delete this invitation permanently? This cannot be undone.')) return
-    await supabase.from('reservations').delete().eq('id', id)
+    const { data: { session } } = await supabase.auth.getSession()
+    await fetch('/api/admin/delete-reservation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session!.access_token}` },
+      body: JSON.stringify({ id }),
+    })
     load()
   }
 
@@ -681,18 +694,21 @@ function ReservationsAdmin() {
 
       {/* Guest Invitations */}
       <div className="card">
-      <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Guest Invitations ({reservations.length})</h2>
-      {reservations.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)' }}>No guest invitations yet</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {reservations.map(r => {
-            const badge = getBadge(r)
-            const signedUp = r.guest_email && signedUpEmails.has(r.guest_email)
-            const hasToken = !!r.invite_token
-            const isMsg = sendMsg?.id === r.id
-            return (
-              <div key={r.id} style={{ background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem', border: signedUp ? '1px solid rgba(201,168,76,0.2)' : '1px solid transparent' }}>
+      {(() => {
+        const pending = reservations.filter(r => !r.guest_email || !signedUpEmails.has(r.guest_email))
+        return <>
+          <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Guest Invitations ({pending.length})</h2>
+          {pending.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)' }}>No pending guest invitations</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {pending.map(r => {
+                const badge = getBadge(r)
+                const signedUp = false
+                const hasToken = !!r.invite_token
+                const isMsg = sendMsg?.id === r.id
+                return (
+                  <div key={r.id} style={{ background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem', border: '1px solid transparent' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
                   <div>
                     <p style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{r.guest_name}</p>
@@ -758,9 +774,11 @@ function ReservationsAdmin() {
                 )}
               </div>
             )
-          })}
-        </div>
-      )}
+              })}
+            </div>
+          )}
+        </>
+      })()}
       </div>
 
     </div>
@@ -962,6 +980,262 @@ function AnnounceAdmin({ players, registeredIds }: { players: any[], registeredI
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── Closest to Pin Admin ────────────────────────────────────────────────────
+
+const PAR3_HOLES = HOLES.filter(h => h.par === 3).map(h => h.number)
+
+function PinAdmin() {
+  const [entries, setEntries] = useState<any[]>([])
+  const [players, setPlayers] = useState<any[]>([])
+  const [form, setForm] = useState({ hole_number: '', distance_feet: '', distance_inches: '', for_player_id: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const load = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    const { data: pl } = await supabase.from('profiles').select('id, full_name, nickname').order('full_name')
+    setPlayers(pl || [])
+    if (!form.for_player_id) setForm(prev => ({ ...prev, for_player_id: session.user.id }))
+    const { data } = await supabase.from('closest_to_pin').select('*, profiles(full_name, nickname)').eq('tournament_year', CURRENT_YEAR).order('hole_number').order('distance_feet').order('distance_inches')
+    setEntries(data || [])
+  }
+
+  useEffect(() => { load() }, [])
+
+  const handleDelete = async (id: string) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    await fetch('/api/admin/delete-pin-entry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ id }),
+    })
+    load()
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    const holeNum = parseInt(form.hole_number)
+    const targetId = form.for_player_id
+    await supabase.from('closest_to_pin').delete().eq('player_id', targetId).eq('tournament_year', CURRENT_YEAR).eq('hole_number', holeNum)
+    const { error } = await supabase.from('closest_to_pin').insert({ player_id: targetId, tournament_year: CURRENT_YEAR, hole_number: holeNum, distance_feet: parseInt(form.distance_feet), distance_inches: parseInt(form.distance_inches) || 0 })
+    setMessage(error ? 'Error: ' + error.message : 'Entry saved!')
+    setTimeout(() => setMessage(''), 3000)
+    setForm(prev => ({ ...prev, distance_feet: '', distance_inches: '' }))
+    setSubmitting(false)
+    load()
+  }
+
+  const byHole = PAR3_HOLES.map(n => ({ hole: n, rows: entries.filter(e => e.hole_number === n) })).filter(g => g.rows.length > 0)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Submit form */}
+      <div className="card">
+        <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Add / Correct Entry</h2>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.4rem', letterSpacing: '0.05em' }}>HOLE (PAR 3)</label>
+              <select className="input" value={form.hole_number} onChange={e => setForm(f => ({ ...f, hole_number: e.target.value }))} required style={{ width: '100%' }}>
+                <option value="">Select hole</option>
+                {PAR3_HOLES.map(n => <option key={n} value={n}>Hole {n}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.4rem', letterSpacing: '0.05em' }}>PLAYER</label>
+              <select className="input" value={form.for_player_id} onChange={e => setForm(f => ({ ...f, for_player_id: e.target.value }))} required style={{ width: '100%' }}>
+                <option value="">Select player</option>
+                {players.map(p => <option key={p.id} value={p.id}>{p.nickname?.trim() || p.full_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.4rem', letterSpacing: '0.05em' }}>FEET</label>
+              <input className="input" type="number" min="0" max="300" value={form.distance_feet} onChange={e => setForm(f => ({ ...f, distance_feet: e.target.value }))} required placeholder="0" style={{ width: '100%' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.4rem', letterSpacing: '0.05em' }}>INCHES</label>
+              <input className="input" type="number" min="0" max="11" value={form.distance_inches} onChange={e => setForm(f => ({ ...f, distance_inches: e.target.value }))} placeholder="0" style={{ width: '100%' }} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button type="submit" disabled={submitting} className="btn-electric">{submitting ? 'Saving...' : 'Save Entry'}</button>
+            {message && <span style={{ fontSize: '0.85rem', color: message.startsWith('Error') ? '#ff8f8f' : 'var(--gold)' }}>{message}</span>}
+          </div>
+        </form>
+      </div>
+
+      {/* Entries by hole */}
+      {byHole.length === 0 ? (
+        <div className="card"><p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No entries yet</p></div>
+      ) : byHole.map(({ hole, rows }) => (
+        <div key={hole} className="card">
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--gold)', marginBottom: '0.875rem' }}>Hole {hole} — Par 3</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {rows.map((entry: any, idx: number) => {
+              const name = entry.profiles?.nickname?.trim() || entry.profiles?.full_name || 'Unknown'
+              return (
+                <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: idx === 0 ? 'rgba(201,168,76,0.08)' : 'var(--navy-light)', border: `1px solid ${idx === 0 ? 'rgba(201,168,76,0.25)' : 'transparent'}`, borderRadius: '0.875rem', padding: '0.6rem 1rem' }}>
+                  <span style={{ fontSize: '1rem', width: '1.5rem' }}>{idx === 0 ? '🏆' : `#${idx + 1}`}</span>
+                  <span style={{ flex: 1, fontWeight: idx === 0 ? 700 : 400, color: idx === 0 ? 'var(--gold)' : 'var(--white)', fontSize: '0.9rem' }}>{name}</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>{entry.distance_feet}′ {entry.distance_inches}″</span>
+                  <button onClick={() => handleDelete(entry.id)} style={{ background: 'none', border: '1px solid rgba(255,107,107,0.25)', borderRadius: '0.5rem', color: '#ff6b6b', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, padding: '0.25rem 0.6rem' }}>🗑</button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Scorecard Admin ─────────────────────────────────────────────────────────
+
+const FRONT_HOLES = HOLES.slice(0, 9)
+const BACK_HOLES  = HOLES.slice(9)
+
+const sc_th: React.CSSProperties = { padding: '0.4rem 0.5rem', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.06em', color: '#8b7d6b', background: '#0d0f0a', border: '1px solid #3d3220', textAlign: 'left', whiteSpace: 'nowrap' }
+const sc_td: React.CSSProperties = { padding: '0.4rem 0.5rem', fontSize: '0.78rem', border: '1px solid #3d3220', textAlign: 'center', whiteSpace: 'nowrap' }
+const sc_label: React.CSSProperties = { ...sc_td, textAlign: 'left', fontWeight: 700, color: '#8b7d6b', background: '#0d0f0a', fontSize: '0.7rem', letterSpacing: '0.05em' }
+const sc_total: React.CSSProperties = { ...sc_td, fontWeight: 700, color: '#c9a84c', background: 'rgba(201,168,76,0.06)', minWidth: '2.5rem' }
+
+function scoreCellStyle(strokes: number, par: number): React.CSSProperties {
+  if (!strokes) return { background: 'rgba(61,50,32,0.2)', color: '#8b7d6b' }
+  if (strokes < par)  return { background: 'rgba(201,168,76,0.18)', color: '#c9a84c', fontWeight: 700 }
+  if (strokes === par) return { background: 'rgba(240,230,204,0.06)', color: '#f0e6cc' }
+  return { background: 'rgba(255,107,107,0.12)', color: '#ff8f8f' }
+}
+
+function ScorecardAdmin() {
+  const [teams, setTeams] = useState<any[]>([])
+  const [idx, setIdx] = useState(0)
+  const [editing, setEditing] = useState<{ [hole: number]: string }>({})
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+  const [userId, setUserId] = useState('')
+
+  const load = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    setUserId(session.user.id)
+    const { data: teamsData } = await supabase.from('teams').select('*, team_members(*, profiles(*))').eq('tournament_year', CURRENT_YEAR).order('name')
+    const teamIds = teamsData?.map((t: any) => t.id) || []
+    const { data: scoresData } = teamIds.length > 0 ? await supabase.from('scores').select('*').in('team_id', teamIds) : { data: [] as any[] }
+    const enriched = (teamsData || []).map((t: any) => ({ ...t, scores: scoresData?.filter((s: any) => s.team_id === t.id) || [] }))
+    setTeams(enriched)
+  }
+
+  useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    if (!teams.length) return
+    const team = teams[idx]
+    const map: { [hole: number]: string } = {}
+    team.scores.forEach((s: any) => { map[s.hole_number] = s.strokes.toString() })
+    setEditing(map)
+  }, [idx, teams])
+
+  const handleSave = async () => {
+    if (!teams.length) return
+    const team = teams[idx]
+    setSaving(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { setSaving(false); return }
+    for (const [hole, strokes] of Object.entries(editing)) {
+      await fetch('/api/admin/upsert-score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ team_id: team.id, hole_number: parseInt(hole), strokes: strokes || null, entered_by: userId }),
+      })
+    }
+    setMessage('Scores saved!')
+    setTimeout(() => setMessage(''), 3000)
+    setSaving(false)
+    load()
+  }
+
+  if (!teams.length) return <div className="card"><p style={{ color: 'var(--text-muted)' }}>No teams created yet — build teams in the Teams tab first.</p></div>
+
+  const team = teams[idx]
+  const members: any[] = team.team_members || []
+
+  const getVal = (holeNum: number) => editing[holeNum] || ''
+  const getStrokes = (holeNum: number) => parseInt(editing[holeNum]) || 0
+  const frontTotal = FRONT_HOLES.reduce((s, h) => s + getStrokes(h.number), 0)
+  const backTotal  = BACK_HOLES.reduce((s, h) => s + getStrokes(h.number), 0)
+  const grandTotal = frontTotal + backTotal
+
+  const renderHoles = (holes: typeof HOLES, subtotal: number, label: string) => (
+    <div style={{ background: '#111a0f', border: '1px solid #3d3220', borderRadius: '1.25rem', overflowX: 'auto' }}>
+      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: '580px' }}>
+        <tbody>
+          <tr>
+            <td style={sc_label}>HOLE</td>
+            {holes.map(h => <td key={h.number} style={{ ...sc_td, background: '#0d0f0a', color: '#f0e6cc', fontWeight: 700 }}>{h.number}</td>)}
+            <td style={sc_total}>{label}</td>
+          </tr>
+          <tr>
+            <td style={{ ...sc_label, color: '#c9a84c' }}>PAR</td>
+            {holes.map(h => <td key={h.number} style={{ ...sc_td, background: '#0d0f0a', color: '#c9a84c', fontWeight: 700 }}>{h.par}</td>)}
+            <td style={sc_total}>{holes.reduce((s, h) => s + h.par, 0)}</td>
+          </tr>
+          <tr>
+            <td style={{ ...sc_label, background: '#162012' }}>SCORE</td>
+            {holes.map(h => {
+              const val = getVal(h.number)
+              const strokes = parseInt(val) || 0
+              return (
+                <td key={h.number} style={{ ...sc_td, background: '#162012', padding: '0.25rem' }}>
+                  <input
+                    type="number" min="1" max="20" inputMode="numeric"
+                    value={val}
+                    onChange={e => setEditing(prev => ({ ...prev, [h.number]: e.target.value }))}
+                    style={{ width: '100%', minWidth: '2rem', textAlign: 'center', padding: '0.3rem 0.2rem', borderRadius: '0.4rem', border: `1px solid ${val ? 'rgba(201,168,76,0.3)' : '#3d3220'}`, fontSize: '0.85rem', fontWeight: 700, outline: 'none', MozAppearance: 'textfield', ...scoreCellStyle(strokes, h.par) }}
+                    placeholder="—"
+                  />
+                </td>
+              )
+            })}
+            <td style={{ ...sc_total, background: '#162012' }}>{subtotal || '—'}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Team navigator */}
+      <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button onClick={() => setIdx(i => Math.max(0, i - 1))} disabled={idx === 0} style={{ background: 'var(--navy-light)', border: '1px solid var(--navy-border)', borderRadius: '0.625rem', color: 'var(--text-muted)', cursor: idx === 0 ? 'default' : 'pointer', fontSize: '1.1rem', fontWeight: 700, padding: '0.4rem 0.875rem', opacity: idx === 0 ? 0.4 : 1 }}>←</button>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--white)' }}>{team.name}</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{idx + 1} of {teams.length}</p>
+          </div>
+          <button onClick={() => setIdx(i => Math.min(teams.length - 1, i + 1))} disabled={idx === teams.length - 1} style={{ background: 'var(--navy-light)', border: '1px solid var(--navy-border)', borderRadius: '0.625rem', color: 'var(--text-muted)', cursor: idx === teams.length - 1 ? 'default' : 'pointer', fontSize: '1.1rem', fontWeight: 700, padding: '0.4rem 0.875rem', opacity: idx === teams.length - 1 ? 0.4 : 1 }}>→</button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+            {members.map((m: any) => m.profiles?.nickname?.trim() || m.profiles?.full_name || '?').join(' · ')}
+          </div>
+          {grandTotal > 0 && <span style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '999px', color: 'var(--gold)', fontSize: '0.85rem', fontWeight: 700, padding: '0.2rem 0.75rem' }}>Total: {grandTotal}</span>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {message && <span style={{ fontSize: '0.85rem', color: 'var(--gold)' }}>{message}</span>}
+            <button onClick={handleSave} disabled={saving} className="btn-electric">{saving ? 'Saving...' : 'Save Scores'}</button>
+          </div>
+        </div>
+      </div>
+
+      {renderHoles(FRONT_HOLES, frontTotal, 'OUT')}
+      {renderHoles(BACK_HOLES, backTotal, 'IN')}
     </div>
   )
 }
