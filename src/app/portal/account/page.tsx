@@ -94,7 +94,7 @@ export default function AccountPage() {
             }
           }
         } else {
-          setMessage(json.error || 'Upload failed — check Cloudinary env vars')
+          setMessage((json.error || 'Upload failed — check Cloudinary env vars') + (json.detail ? ` | ${json.detail}` : ''))
         }
         setAvatarUploading(false)
         setCropSrc(null)
@@ -240,7 +240,12 @@ export default function AccountPage() {
               <input
                 type="range" min="0.5" max="3" step="0.01"
                 value={cropScale}
-                onChange={e => setCropScale(parseFloat(e.target.value))}
+                onChange={e => {
+                  const newScale = parseFloat(e.target.value)
+                  const ratio = newScale / cropScale
+                  setCropScale(newScale)
+                  setCropOffset(prev => ({ x: prev.x * ratio, y: prev.y * ratio }))
+                }}
                 style={{ width: '100%', accentColor: '#c9a84c' }}
               />
             </div>

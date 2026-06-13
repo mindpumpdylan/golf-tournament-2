@@ -22,17 +22,16 @@ export async function POST(req: NextRequest) {
   if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 })
   const buffer = Buffer.from(await file.arrayBuffer())
   try {
-    const result = await new Promise<any>((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        { folder: 'high-country-classic/avatars', resource_type: 'image' },
-        (err, res) => err ? reject(err) : resolve(res)
-      ).end(buffer)
+    const base64 = `data:image/jpeg;base64,${buffer.toString('base64')}`
+    const result = await cloudinary.uploader.upload(base64, {
+      folder: 'high-country-classic/avatars',
+      resource_type: 'image',
     })
     return NextResponse.json({ url: result.secure_url })
   } catch (err: any) {
     return NextResponse.json({
       error: err.message || 'Cloudinary upload failed',
-      detail: err.http_code ? `HTTP ${err.http_code}` : undefined,
+      detail: JSON.stringify(err),
     }, { status: 500 })
   }
 }

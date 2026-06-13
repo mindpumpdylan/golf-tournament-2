@@ -38,6 +38,7 @@ export default function PortalHome() {
   const [isRegistered, setIsRegistered] = useState(true)
   const [registering, setRegistering] = useState(false)
   const [tournamentStatus, setTournamentStatus] = useState('')
+  const [tournamentDate, setTournamentDate] = useState('')
   const [videoMuted, setVideoMuted] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -112,8 +113,11 @@ export default function PortalHome() {
       setIsRegistered(!!reg)
 
       try {
-        const { data: statusRow } = await supabase.from('tournament_settings').select('value').eq('key', 'status').maybeSingle()
-        if (statusRow?.value) setTournamentStatus(statusRow.value)
+        const { data: settingsRows } = await supabase.from('tournament_settings').select('key, value').in('key', ['status', 'date'])
+        settingsRows?.forEach((r: any) => {
+          if (r.key === 'status') setTournamentStatus(r.value)
+          if (r.key === 'date') setTournamentDate(r.value)
+        })
       } catch {}
 
       setLoading(false)
@@ -127,6 +131,13 @@ export default function PortalHome() {
     await supabase.from('tournament_registrations').insert({ player_id: session.user.id, tournament_year: CURRENT_YEAR })
     setIsRegistered(true)
     setRegistering(false)
+    if (profile) {
+      fetch('/api/send-welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: profile.email, name: displayName(profile) }),
+      }).catch(() => {})
+    }
   }
 
   const myTotal = myScores.reduce((sum, s) => sum + s.strokes, 0)
@@ -178,6 +189,17 @@ export default function PortalHome() {
         </div>
       )}
 
+      {isRegistered && !loading && (() => {
+        const missing = [!profile?.handicap && 'Handicap', !profile?.avatar_url && 'Profile Photo', !profile?.phone_number && 'Phone'].filter(Boolean) as string[]
+        if (!missing.length) return null
+        return (
+          <div style={{ background: 'rgba(139,127,107,0.07)', border: '1px solid rgba(139,127,107,0.18)', borderRadius: '1rem', padding: '0.875rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+            <p style={{ fontSize: '0.85rem', color: MUTED }}>Profile incomplete: <strong style={{ color: CREAM }}>{missing.join(', ')}</strong> missing</p>
+            <a href="/portal/account" style={{ fontSize: '0.82rem', fontWeight: 700, color: GOLD, textDecoration: 'none', whiteSpace: 'nowrap' }}>Complete Profile →</a>
+          </div>
+        )
+      })()}
+
       {/* Hero */}
       <div style={{ border: '1px solid #3d3220', borderRadius: '2rem', padding: '3.5rem 2rem', textAlign: 'center', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         {/* Video background */}
@@ -214,6 +236,12 @@ export default function PortalHome() {
               <span style={{ color: 'rgba(240,230,204,0.7)', fontSize: '0.9rem' }}>Welcome back, <span style={{ color: GOLD, fontWeight: 700 }}>{displayName(profile)}</span></span>
             ) : null}
           </div>
+          {tournamentDate && (() => {
+            const days = Math.ceil((new Date(tournamentDate + 'T12:00:00').getTime() - Date.now()) / 86400000)
+            if (days === 0) return <div style={{ marginTop: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.4)', borderRadius: '999px', padding: '0.4rem 1.1rem', fontSize: '0.9rem', fontWeight: 700, color: GOLD }}>🏌️ It&apos;s Tournament Day!</div>
+            if (days > 0) return <div style={{ marginTop: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '999px', padding: '0.4rem 1.1rem', fontSize: '0.9rem', fontWeight: 700, color: GOLD }}>⛳ {days} day{days !== 1 ? 's' : ''} to tournament</div>
+            return null
+          })()}
         </div>
       </div>
 
@@ -296,6 +324,12 @@ export default function PortalHome() {
                     <span style={{ fontSize: '0.85rem', color: MUTED }}>Status</span>
                     <span style={{ background: 'rgba(201,168,76,0.12)', color: GOLD, border: '1px solid rgba(201,168,76,0.25)', borderRadius: '999px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: 700 }}>Registered</span>
                   </div>
+                  {myTeam?.tee_time && (
+                    <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: '0.75rem', padding: '0.6rem 1rem', marginTop: '0.5rem' }}>
+                      <p style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.08em', marginBottom: '0.2rem' }}>TEE TIME</p>
+                      <p style={{ fontSize: '1.1rem', fontWeight: 700, color: GOLD }}>{myTeam.tee_time}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </Link>
