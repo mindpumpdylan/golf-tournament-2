@@ -9,6 +9,10 @@ export type Profile = {
   phone_number: string | null
   is_admin: boolean
   created_at: string
+  bio: string | null
+  home_course: string | null
+  years_playing: number | null
+  shirt_size: string | null
 }
 
 export type AvailabilityDate = {

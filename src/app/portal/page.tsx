@@ -6,11 +6,11 @@ import type { Profile } from '@/lib/types'
 import { COURSE_NAME, COURSE_LOCATION, CURRENT_YEAR } from '@/lib/constants'
 import { displayName } from '@/lib/utils'
 
-const CARD: React.CSSProperties = { background: '#111a0f', border: '1px solid #3d3220', borderRadius: '1.5rem', padding: '1.5rem' }
-const GOLD = '#c9a84c'
-const CREAM = '#f0e6cc'
-const MUTED = '#8b7d6b'
-const CARD_MID = '#162012'
+const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '1.5rem', padding: '1.5rem' }
+const GOLD = 'var(--gold)'
+const CREAM = 'var(--cream)'
+const MUTED = 'var(--text-muted)'
+const CARD_MID = 'var(--card-mid)'
 
 function SkeletonWidget() {
   return (

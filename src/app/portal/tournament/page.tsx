@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { CURRENT_YEAR, ALL_HOLES, HOLES } from '@/lib/constants'
+import { CURRENT_YEAR, ALL_HOLES, HOLES, PAR } from '@/lib/constants'
 import { displayName } from '@/lib/utils'
 import type { Score } from '@/lib/types'
 
@@ -12,6 +12,22 @@ function relativeTime(date: Date) {
   const mins = Math.floor(secs / 60)
   if (mins < 60) return `${mins}m ago`
   return `${Math.floor(mins / 60)}h ago`
+}
+
+function toParStr(total: number, holesPlayed: number) {
+  if (total === 0 || holesPlayed === 0) return null
+  const par = PAR
+  const diff = total - par
+  if (diff === 0) return 'E'
+  return diff > 0 ? `+${diff}` : `${diff}`
+}
+
+function toParColor(total: number) {
+  if (total === 0) return 'var(--text-muted)'
+  const diff = total - PAR
+  if (diff < 0) return 'var(--gold)'
+  if (diff === 0) return 'var(--cream)'
+  return '#ff8f8f'
 }
 
 export default function TournamentPage() {
@@ -46,24 +62,40 @@ export default function TournamentPage() {
 
   const getTotal = (scores: Score[]) => scores.reduce((sum, s) => sum + s.strokes, 0)
   const sorted = [...teams].sort((a, b) => {
-    const diff = getTotal(a.scores) - getTotal(b.scores)
-    return diff !== 0 ? diff : a.name.localeCompare(b.name)
+    const aTotal = getTotal(a.scores)
+    const bTotal = getTotal(b.scores)
+    if (aTotal === 0 && bTotal === 0) return a.name.localeCompare(b.name)
+    if (aTotal === 0) return 1
+    if (bTotal === 0) return -1
+    return aTotal - bTotal
   })
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>Loading tournament...</div>
+  if (loading) return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '2rem 0' }}>
+      {[...Array(3)].map((_, i) => (
+        <div key={i} style={{ height: '80px', background: 'var(--card)', borderRadius: '1.25rem', opacity: 0.5 + i * 0.1 }} />
+      ))}
+    </div>
+  )
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <style>{`@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.6} }`}</style>
+
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '2.5rem', color: 'var(--gold)', marginBottom: '0.5rem' }}>{CURRENT_YEAR} Tournament</h1>
-          <p style={{ color: 'var(--text-muted)' }}>Live teams and leaderboard — updates in real time</p>
+          <p style={{ color: 'var(--text-muted)' }}>Live scores — updates in real time</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: 'var(--green-live)', fontWeight: 700 }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--green-live)', display: 'inline-block', animation: 'livePulse 1.5s ease-in-out infinite' }} />
+            LIVE
+          </span>
           {lastUpdated && (
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Updated {relativeTime(lastUpdated)}</span>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{relativeTime(lastUpdated)}</span>
           )}
-          <button onClick={load} style={{ padding: '0.4rem 0.875rem', borderRadius: '0.75rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: 'var(--navy-card)', border: '1px solid var(--navy-border)', color: 'var(--text-muted)', transition: 'all 0.15s' }}>
+          <button onClick={load} style={{ padding: '0.4rem 0.875rem', borderRadius: '0.75rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text-muted)', transition: 'all 0.15s' }}>
             ↺ Refresh
           </button>
         </div>
@@ -79,91 +111,165 @@ export default function TournamentPage() {
         <>
           {/* Leaderboard */}
           <div className="card-glow">
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              🏆 <span style={{ color: 'var(--gold)' }}>Leaderboard</span>
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {sorted.map((team, idx) => (
-                <div key={team.id} style={{
-                  display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', borderRadius: '1rem',
-                  background: idx === 0 ? 'rgba(201,168,76,0.08)' : 'var(--navy-light)',
-                  border: idx === 0 ? '1px solid rgba(201,168,76,0.2)' : '1px solid transparent',
-                }}>
-                  <span style={{ fontSize: '1.5rem', fontFamily: 'Georgia, serif', fontWeight: 700, width: '2rem', textAlign: 'center', color: idx === 0 ? 'var(--gold)' : idx === 1 ? '#c0c0c0' : idx === 2 ? '#cd7f32' : 'var(--text-muted)' }}>
-                    {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 700, fontSize: '1rem' }}>{team.name}</p>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{team.members.map((m: any) => displayName(m.profiles)).join(', ')}</p>
-                    {team.tee_time && <p style={{ fontSize: '0.75rem', color: 'var(--gold)', marginTop: '0.15rem' }}>Tee: {team.tee_time}</p>}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h2 style={{ fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🏆 <span style={{ color: 'var(--gold)' }}>Leaderboard</span>
+              </h2>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--card-mid)', padding: '0.25rem 0.75rem', borderRadius: '999px', border: '1px solid var(--border)' }}>
+                Par {PAR}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {sorted.map((team, idx) => {
+                const total = getTotal(team.scores)
+                const holesPlayed = team.scores.length
+                const par = toParStr(total, holesPlayed)
+                const isLeading = idx === 0 && total > 0
+                return (
+                  <div key={team.id} style={{
+                    display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.875rem 1.25rem', borderRadius: '1rem',
+                    background: isLeading ? 'rgba(201,168,76,0.1)' : idx % 2 === 0 ? 'var(--card-mid)' : 'transparent',
+                    border: isLeading ? '1px solid rgba(201,168,76,0.25)' : '1px solid transparent',
+                    transition: 'all 0.2s',
+                  }}>
+                    {/* Rank */}
+                    <div style={{ width: '2rem', textAlign: 'center', flexShrink: 0 }}>
+                      {idx === 0 && total > 0 ? (
+                        <span style={{ fontSize: '1.35rem' }}>🥇</span>
+                      ) : idx === 1 && total > 0 ? (
+                        <span style={{ fontSize: '1.35rem' }}>🥈</span>
+                      ) : idx === 2 && total > 0 ? (
+                        <span style={{ fontSize: '1.35rem' }}>🥉</span>
+                      ) : (
+                        <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-muted)' }}>{idx + 1}</span>
+                      )}
+                    </div>
+
+                    {/* Team info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.1rem' }}>{team.name}</p>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {team.members.map((m: any) => displayName(m.profiles)).join(' · ')}
+                      </p>
+                    </div>
+
+                    {/* Holes played */}
+                    <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.2rem', letterSpacing: '0.04em' }}>HOLES</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: holesPlayed === 18 ? 'var(--gold)' : 'var(--cream)' }}>
+                        {holesPlayed}/18
+                      </div>
+                    </div>
+
+                    {/* To par */}
+                    <div style={{ textAlign: 'right', minWidth: '3rem', flexShrink: 0 }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.1rem', letterSpacing: '0.04em' }}>TO PAR</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 700, color: toParColor(total), lineHeight: 1 }}>
+                        {par || (total > 0 ? total : '—')}
+                      </div>
+                    </div>
+
+                    {/* Total */}
+                    <div style={{ textAlign: 'right', minWidth: '3.5rem', flexShrink: 0, paddingLeft: '0.75rem', borderLeft: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.1rem', letterSpacing: '0.04em' }}>SCORE</div>
+                      <div style={{ fontSize: '1.75rem', fontWeight: 700, color: isLeading ? 'var(--gold)' : 'var(--white)', lineHeight: 1 }}>
+                        {total || '—'}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontSize: '2rem', fontFamily: 'Georgia, serif', fontWeight: 700, color: idx === 0 ? 'var(--gold)' : 'var(--white)', lineHeight: 1 }}>
-                      {getTotal(team.scores) || '—'}
-                    </p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{team.scores.length}/18 holes</p>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
-          {/* Team scorecards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
-            {teams.map(team => (
-              <div key={team.id} className="card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                  <h3 style={{ fontSize: '1.2rem', color: 'var(--gold)' }}>{team.name}</h3>
-                  {team.tee_time && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingTop: '0.2rem' }}>Tee: {team.tee_time}</span>}
-                </div>
-                <div style={{ marginBottom: '1rem' }}>
-                  {team.members.map((m: any) => (
-                    <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.3rem 0', borderBottom: '1px solid var(--navy-light)' }}>
-                      <span style={{ fontSize: '0.9rem' }}>{displayName(m.profiles)}</span>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>HCP {m.profiles?.handicap ?? 'N/A'}</span>
+          {/* Team scorecards grid */}
+          <div>
+            <h2 style={{ fontSize: '0.85rem', marginBottom: '1rem', color: 'var(--text-muted)', letterSpacing: '0.05em', fontWeight: 700 }}>TEAM SCORECARDS</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
+              {teams.map(team => {
+                const total = getTotal(team.scores)
+                const holesPlayed = team.scores.length
+                const par = toParStr(total, holesPlayed)
+                return (
+                  <div key={team.id} className="card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.875rem' }}>
+                      <div>
+                        <h3 style={{ fontSize: '1.1rem', color: 'var(--gold)', marginBottom: '0.15rem' }}>{team.name}</h3>
+                        {team.tee_time && (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>⏱ Tee: {team.tee_time}</span>
+                        )}
+                      </div>
+                      {par && (
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: toParColor(total), lineHeight: 1 }}>{par}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>to par</div>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-                {/* Mini scorecard — front 9 */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '2px', marginBottom: '2px' }}>
-                  {ALL_HOLES.slice(0, 9).map(h => {
-                    const score = team.scores.find((s: Score) => s.hole_number === h)
-                    const hole = HOLES[h - 1]
-                    const under = score && score.strokes < hole.par
-                    const over = score && score.strokes > hole.par
-                    return (
-                      <div key={h} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '2px' }}>{h}</div>
-                        <div style={{ height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, background: score ? (under ? 'rgba(201,168,76,0.25)' : over ? 'rgba(255,107,107,0.2)' : 'var(--navy-card)') : 'var(--navy-light)', color: score ? (under ? 'var(--gold)' : over ? '#ff8f8f' : 'var(--white)') : 'var(--navy-border)' }}>
-                          {score?.strokes || '·'}
+
+                    {/* Members */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '1rem' }}>
+                      {team.members.map((m: any) => (
+                        <span key={m.id} style={{ fontSize: '0.78rem', padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'var(--card-mid)', border: '1px solid var(--border)', color: 'var(--cream)' }}>
+                          {displayName(m.profiles)}
+                          {m.profiles?.handicap != null && <span style={{ color: 'var(--text-muted)', marginLeft: '0.3rem' }}>({m.profiles.handicap})</span>}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Mini scorecard — front 9 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '2px', marginBottom: '2px' }}>
+                      {ALL_HOLES.slice(0, 9).map(h => {
+                        const score = team.scores.find((s: Score) => s.hole_number === h)
+                        const hole = HOLES[h - 1]
+                        const under = score && score.strokes < hole.par
+                        const over = score && score.strokes > hole.par
+                        return (
+                          <div key={h} style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '2px' }}>{h}</div>
+                            <div style={{ height: '26px', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, background: score ? (under ? 'rgba(201,168,76,0.25)' : over ? 'rgba(255,107,107,0.2)' : 'rgba(240,230,204,0.08)') : 'var(--card-mid)', color: score ? (under ? 'var(--gold)' : over ? '#ff8f8f' : 'var(--white)') : 'var(--border)' }}>
+                              {score?.strokes || '·'}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Back 9 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '2px', marginBottom: '0.75rem' }}>
+                      {ALL_HOLES.slice(9).map(h => {
+                        const score = team.scores.find((s: Score) => s.hole_number === h)
+                        const hole = HOLES[h - 1]
+                        const under = score && score.strokes < hole.par
+                        const over = score && score.strokes > hole.par
+                        return (
+                          <div key={h} style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '2px' }}>{h}</div>
+                            <div style={{ height: '26px', borderRadius: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, background: score ? (under ? 'rgba(201,168,76,0.25)' : over ? 'rgba(255,107,107,0.2)' : 'rgba(240,230,204,0.08)') : 'var(--card-mid)', color: score ? (under ? 'var(--gold)' : over ? '#ff8f8f' : 'var(--white)') : 'var(--border)' }}>
+                              {score?.strokes || '·'}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* Footer */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{holesPlayed}/18 holes</span>
+                        <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'rgba(201,168,76,0.25)', display: 'inline-block' }} />
+                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>under</span>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'rgba(255,107,107,0.2)', display: 'inline-block', marginLeft: '0.25rem' }} />
+                          <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>over</span>
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-                {/* Back 9 */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '2px' }}>
-                  {ALL_HOLES.slice(9).map(h => {
-                    const score = team.scores.find((s: Score) => s.hole_number === h)
-                    const hole = HOLES[h - 1]
-                    const under = score && score.strokes < hole.par
-                    const over = score && score.strokes > hole.par
-                    return (
-                      <div key={h} style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '2px' }}>{h}</div>
-                        <div style={{ height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, background: score ? (under ? 'rgba(201,168,76,0.25)' : over ? 'rgba(255,107,107,0.2)' : 'var(--navy-card)') : 'var(--navy-light)', color: score ? (under ? 'var(--gold)' : over ? '#ff8f8f' : 'var(--white)') : 'var(--navy-border)' }}>
-                          {score?.strokes || '·'}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                <div style={{ marginTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Total</span>
-                  <span style={{ fontSize: '1.5rem', fontFamily: 'Georgia, serif', fontWeight: 700, color: 'var(--gold)' }}>{getTotal(team.scores) || '—'}</span>
-                </div>
-              </div>
-            ))}
+                      <span style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--gold)' }}>{total || '—'}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </>
       )}
