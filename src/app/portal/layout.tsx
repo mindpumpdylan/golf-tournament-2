@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import type { Profile } from '@/lib/types'
 import { displayName } from '@/lib/utils'
+import ParticleBackground from '@/components/ParticleBackground'
 
 const navItems = [
   { href: '/portal', label: 'Home' },
@@ -57,7 +58,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const close = () => setMenuOpen(false)
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', position: 'relative' }}>
+      <ParticleBackground />
 
       {/* Nav bar */}
       <nav style={{ background: 'var(--card)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 50 }}>
@@ -253,7 +255,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         </div>
       </div>
 
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1rem' }}>
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1rem', position: 'relative', zIndex: 1 }}>
         {children}
       </main>
     </div>

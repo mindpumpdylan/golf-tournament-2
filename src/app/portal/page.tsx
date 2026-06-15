@@ -327,7 +327,7 @@ export default function PortalHome() {
         </button>
         {/* Content */}
         <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img src="/logo.png" alt="High Country Classic" style={{ width: '280px', height: '280px', objectFit: 'contain', marginBottom: '1.5rem', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.6))' }} />
+          <img src="/logo.png" alt="High Country Classic" style={{ width: '280px', height: '280px', objectFit: 'contain', marginBottom: '1.5rem', filter: 'drop-shadow(0 4px 24px rgba(0,0,0,0.6))', animation: 'floatBob 4s ease-in-out infinite' }} />
           <p style={{ color: 'rgba(240,230,204,0.65)', fontSize: '0.85rem', marginBottom: '0.2rem', letterSpacing: '0.12em' }}>{COURSE_NAME.toUpperCase()}</p>
           <p style={{ color: 'rgba(240,230,204,0.45)', fontSize: '0.8rem', marginBottom: '1.5rem', letterSpacing: '0.1em' }}>{COURSE_LOCATION.toUpperCase()}</p>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -362,7 +362,7 @@ export default function PortalHome() {
         ) : (
           <>
             {/* Date Poll */}
-            <Link href="/portal/availability" style={{ textDecoration: 'none' }}>
+            <Link href="/portal/availability" style={{ textDecoration: 'none', animation: 'fadeSlideUp 0.45s ease-out both 0ms' }}>
               <div style={widgetStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <span style={{ fontFamily: 'JerseyM54, Georgia, serif', fontSize: '1rem', color: GOLD }}>Date Poll</span>
@@ -394,7 +394,7 @@ export default function PortalHome() {
             </Link>
 
             {/* My Spots */}
-            <Link href="/portal/reservations" style={{ textDecoration: 'none' }}>
+            <Link href="/portal/reservations" style={{ textDecoration: 'none', animation: 'fadeSlideUp 0.45s ease-out both 70ms' }}>
               <div style={widgetStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <span style={{ fontFamily: 'JerseyM54, Georgia, serif', fontSize: '1rem', color: GOLD }}>My Spots</span>
@@ -437,7 +437,7 @@ export default function PortalHome() {
             </Link>
 
             {/* Leaderboard */}
-            <Link href="/portal/tournament" style={{ textDecoration: 'none' }}>
+            <Link href="/portal/tournament" style={{ textDecoration: 'none', animation: 'fadeSlideUp 0.45s ease-out both 140ms' }}>
               <div style={widgetStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <span style={{ fontFamily: 'JerseyM54, Georgia, serif', fontSize: '1rem', color: GOLD }}>Leaderboard</span>
@@ -458,7 +458,7 @@ export default function PortalHome() {
             </Link>
 
             {/* Scorecard */}
-            <Link href="/portal/scorecard" style={{ textDecoration: 'none' }}>
+            <Link href="/portal/scorecard" style={{ textDecoration: 'none', animation: 'fadeSlideUp 0.45s ease-out both 210ms' }}>
               <div style={widgetStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <span style={{ fontFamily: 'JerseyM54, Georgia, serif', fontSize: '1rem', color: GOLD }}>Scorecard</span>
@@ -501,7 +501,7 @@ export default function PortalHome() {
             </Link>
 
             {/* Closest to Pin */}
-            <Link href="/portal/pin" style={{ textDecoration: 'none' }}>
+            <Link href="/portal/pin" style={{ textDecoration: 'none', animation: 'fadeSlideUp 0.45s ease-out both 280ms' }}>
               <div style={widgetStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <span style={{ fontFamily: 'JerseyM54, Georgia, serif', fontSize: '1rem', color: GOLD }}>Closest to Pin</span>
@@ -522,7 +522,7 @@ export default function PortalHome() {
             </Link>
 
             {/* Gallery */}
-            <Link href="/portal/gallery" style={{ textDecoration: 'none' }}>
+            <Link href="/portal/gallery" style={{ textDecoration: 'none', animation: 'fadeSlideUp 0.45s ease-out both 350ms' }}>
               <div style={{ ...CARD, cursor: 'pointer', transition: 'all 0.2s', minHeight: '180px', padding: recentPhotos.length > 0 ? 0 : '1.5rem', overflow: 'hidden' }}>
                 {recentPhotos.length === 0 ? (
                   <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

@@ -34,6 +34,7 @@ export default function ScorecardPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [flash, setFlash] = useState<number | null>(null)
+  const [birdieFlash, setBirdieFlash] = useState<number | null>(null)
 
   const load = async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -109,6 +110,7 @@ export default function ScorecardPage() {
       <style>{`
         @keyframes flashGold { 0%{opacity:1} 50%{opacity:0.4} 100%{opacity:1} }
         .flash-cell { animation: flashGold 0.4s ease }
+        .birdie-cell { animation: burst 0.5s ease forwards }
         input[type=number]::-webkit-outer-spin-button,
         input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
@@ -178,6 +180,8 @@ export default function ScorecardPage() {
         canEdit={canEdit}
         flash={flash}
         setFlash={setFlash}
+        birdieFlash={birdieFlash}
+        setBirdieFlash={setBirdieFlash}
       />
 
       {/* Back 9 */}
@@ -193,6 +197,8 @@ export default function ScorecardPage() {
         canEdit={canEdit}
         flash={flash}
         setFlash={setFlash}
+        birdieFlash={birdieFlash}
+        setBirdieFlash={setBirdieFlash}
       />
 
       {/* Totals */}
@@ -214,7 +220,7 @@ export default function ScorecardPage() {
 }
 
 function ScorecardTable({
-  label, holes, parTotal, strokeTotal, totalLabel, editing, setEditing, teamLabel, canEdit, flash, setFlash
+  label, holes, parTotal, strokeTotal, totalLabel, editing, setEditing, teamLabel, canEdit, flash, setFlash, birdieFlash, setBirdieFlash
 }: {
   label: string
   holes: typeof HOLES
@@ -227,6 +233,8 @@ function ScorecardTable({
   canEdit: boolean
   flash: number | null
   setFlash: (n: number | null) => void
+  birdieFlash: number | null
+  setBirdieFlash: (n: number | null) => void
 }) {
   return (
     <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '1.5rem', overflowX: 'auto', overflowY: 'hidden' }}>
@@ -291,6 +299,7 @@ function ScorecardTable({
               const strokes = parseInt(val) || 0
               const cellStyle = scoreCellStyle(strokes, h.par)
               const isFlashing = flash === h.number
+              const isBirdie = birdieFlash === h.number
               return (
                 <td key={h.number} style={{ ...td, background: 'var(--card-mid)', padding: '0.25rem' }}>
                   {canEdit ? (
@@ -299,14 +308,19 @@ function ScorecardTable({
                       type="number" min="1" max="20"
                       inputMode="numeric"
                       value={val}
-                      className={isFlashing ? 'flash-cell' : ''}
+                      className={isBirdie ? 'birdie-cell' : isFlashing ? 'flash-cell' : ''}
                       onChange={e => {
                         const v = e.target.value
                         setEditing(prev => ({ ...prev, [h.number]: v }))
                         const n = parseInt(v)
                         if (n >= 1 && n <= 20) {
-                          setFlash(h.number)
-                          setTimeout(() => setFlash(null), 400)
+                          if (n < h.par) {
+                            setBirdieFlash(h.number)
+                            setTimeout(() => setBirdieFlash(null), 600)
+                          } else {
+                            setFlash(h.number)
+                            setTimeout(() => setFlash(null), 400)
+                          }
                           const next = document.getElementById(`hole-${h.number + 1}`)
                           if (next) (next as HTMLInputElement).focus()
                         }

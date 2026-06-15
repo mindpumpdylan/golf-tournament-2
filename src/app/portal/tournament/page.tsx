@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, ALL_HOLES, HOLES, PAR } from '@/lib/constants'
 import { displayName } from '@/lib/utils'
@@ -40,6 +40,8 @@ export default function TournamentPage() {
   const [, forceUpdate] = useState(0)
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'teesheet' | 'scorecards'>('leaderboard')
   const [myTeamId, setMyTeamId] = useState<string | null>(null)
+  const [flashTeamId, setFlashTeamId] = useState<string | null>(null)
+  const prevTotalsRef = useRef<Record<string, number>>({})
 
   const load = useCallback(async () => {
     const { data: teamsData } = await supabase.from('teams').select('*, team_members(*, profiles(*))').eq('tournament_year', CURRENT_YEAR)
@@ -48,11 +50,22 @@ export default function TournamentPage() {
       ? await supabase.from('scores').select('*').in('team_id', teamIds)
       : { data: [] as Score[] }
     if (teamsData) {
-      setTeams(teamsData.map((t: any) => ({
+      const enriched = teamsData.map((t: any) => ({
         ...t,
         members: t.team_members || [],
         scores: scoresData?.filter((s: Score) => s.team_id === t.id) || []
-      })))
+      }))
+      // detect which team's total changed and flash it
+      const prev = prevTotalsRef.current
+      for (const team of enriched) {
+        const newTotal = team.scores.reduce((s: number, sc: Score) => s + sc.strokes, 0)
+        if (prev[team.id] !== undefined && prev[team.id] !== newTotal) {
+          setFlashTeamId(team.id)
+          setTimeout(() => setFlashTeamId(null), 900)
+        }
+        prev[team.id] = newTotal
+      }
+      setTeams(enriched)
     }
     setLastUpdated(new Date())
     setLoading(false)
@@ -99,7 +112,11 @@ export default function TournamentPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <style>{`@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.6} }`}</style>
+      <style>{`
+        @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+        @keyframes rowFlash { 0%{background:rgba(201,168,76,0.18)} 100%{background:transparent} }
+        .row-flash { animation: rowFlash 0.9s ease-out forwards }
+      `}</style>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
@@ -168,7 +185,7 @@ export default function TournamentPage() {
                   const isLeading = idx === 0 && total > 0
                   const isMyTeam = team.id === myTeamId
                   return (
-                    <div key={team.id} style={{
+                    <div key={team.id} className={flashTeamId === team.id ? 'row-flash' : ''} style={{
                       display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.875rem 1.25rem', borderRadius: '1rem',
                       background: isLeading ? 'rgba(201,168,76,0.1)' : idx % 2 === 0 ? 'var(--card-mid)' : 'transparent',
                       border: isMyTeam ? '1px solid rgba(201,168,76,0.4)' : isLeading ? '1px solid rgba(201,168,76,0.25)' : '1px solid transparent',
@@ -201,7 +218,7 @@ export default function TournamentPage() {
                       </div>
                       <div style={{ textAlign: 'right', minWidth: '3.5rem', flexShrink: 0, paddingLeft: '0.75rem', borderLeft: '1px solid var(--border)' }}>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.1rem', letterSpacing: '0.04em' }}>SCORE</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 700, color: isLeading ? 'var(--gold)' : 'var(--white)', lineHeight: 1 }}>{total || '—'}</div>
+                        <div style={{ fontSize: '1.75rem', fontWeight: 700, color: isLeading ? 'var(--gold)' : 'var(--white)', lineHeight: 1, transition: 'color 0.4s ease' }}>{total || '—'}</div>
                       </div>
                     </div>
                   )
