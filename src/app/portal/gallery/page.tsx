@@ -168,7 +168,17 @@ export default function GalleryPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
           <h1 style={{ fontSize: '2.5rem', color: 'var(--gold)', marginBottom: '0.5rem' }}>📷 Gallery</h1>
-          <p style={{ color: 'var(--text-muted)' }}>{posts.length} {posts.length === 1 ? 'photo' : 'photos'} from the course</p>
+          <p style={{ color: 'var(--text-muted)' }}>
+            {(() => {
+              const photos = posts.filter(p => p.media_type !== 'video').length
+              const videos = posts.filter(p => p.media_type === 'video').length
+              if (posts.length === 0) return 'No posts yet'
+              const parts = []
+              if (photos > 0) parts.push(`${photos} ${photos === 1 ? 'photo' : 'photos'}`)
+              if (videos > 0) parts.push(`${videos} ${videos === 1 ? 'video' : 'videos'}`)
+              return parts.join(' · ') + ' from the course'
+            })()}
+          </p>
         </div>
       </div>
 
@@ -262,10 +272,18 @@ export default function GalleryPage() {
               style={{ breakInside: 'avoid', marginBottom: '0.75rem', borderRadius: '1.25rem', overflow: 'hidden', background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer' }}
               onClick={() => setLightbox({ idx })}
             >
-              {post.media_type === 'video'
-                ? <video src={post.cloudinary_url} style={{ width: '100%', display: 'block' }} />
-                : <img src={post.cloudinary_url} style={{ width: '100%', display: 'block' }} alt={post.caption || ''} loading="lazy" />
-              }
+              {post.media_type === 'video' ? (
+                <div style={{ position: 'relative' }}>
+                  <video src={post.cloudinary_url} style={{ width: '100%', display: 'block' }} />
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.25)' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(201,168,76,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 16px rgba(0,0,0,0.5)' }}>
+                      <span style={{ color: '#0d0f0a', fontSize: '1.1rem', marginLeft: '3px' }}>▶</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <img src={post.cloudinary_url} style={{ width: '100%', display: 'block' }} alt={post.caption || ''} loading="lazy" />
+              )}
               <div style={{ padding: '0.875rem' }}>
                 {post.caption && <p style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: '0.5rem', lineHeight: 1.4 }}>{post.caption}</p>}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>

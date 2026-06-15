@@ -42,9 +42,19 @@ export default function AvailabilityPage() {
       setVoteCounts(counts as Record<string, number>)
     }
 
-    // Total player count for percentages
-    const { count } = await supabase.from('profiles').select('id', { count: 'exact', head: true })
-    setTotalPlayers(count || 0)
+    // Count unique players who have voted on at least one date
+    const { data: voters } = await supabase
+      .from('availability_dates')
+      .select('user_id')
+      .eq('tournament_year', CURRENT_YEAR)
+    const uniqueVoters = new Set((voters || []).map((v: any) => v.user_id)).size
+    // Fall back to total profiles if no votes yet
+    if (uniqueVoters > 0) {
+      setTotalPlayers(uniqueVoters)
+    } else {
+      const { count } = await supabase.from('profiles').select('id', { count: 'exact', head: true })
+      setTotalPlayers(count || 0)
+    }
 
     // Current tournament date if admin already picked one
     const { data: setting } = await supabase.from('tournament_settings').select('value').eq('key', 'tournament_date').maybeSingle()
@@ -185,7 +195,7 @@ export default function AvailabilityPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
             <h2 style={{ fontSize: '1.3rem' }}>Poll Results</h2>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', background: 'var(--navy-light)', padding: '0.25rem 0.75rem', borderRadius: '999px' }}>
-              {totalPlayers} players · {sortedVotes.length} date{sortedVotes.length !== 1 ? 's' : ''} voted
+              {totalPlayers} {totalPlayers === 1 ? 'player' : 'players'} responded · {sortedVotes.length} {sortedVotes.length === 1 ? 'date' : 'dates'}
             </span>
           </div>
 
