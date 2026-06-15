@@ -421,7 +421,10 @@ export default function PortalHome() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
                     <span style={{ fontSize: '0.85rem', color: MUTED }}>Status</span>
-                    <span style={{ background: 'rgba(201,168,76,0.12)', color: GOLD, border: '1px solid rgba(201,168,76,0.25)', borderRadius: '999px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: 700 }}>Playing {CURRENT_YEAR}</span>
+                    {isRegistered
+                      ? <span style={{ background: 'rgba(201,168,76,0.12)', color: GOLD, border: '1px solid rgba(201,168,76,0.25)', borderRadius: '999px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: 700 }}>Playing {CURRENT_YEAR}</span>
+                      : <span style={{ background: 'rgba(139,127,107,0.1)', color: MUTED, border: '1px solid rgba(139,127,107,0.2)', borderRadius: '999px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: 700 }}>Not opted in</span>
+                    }
                   </div>
                   {myTeam?.tee_time && (
                     <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: '0.75rem', padding: '0.6rem 1rem', marginTop: '0.5rem' }}>

@@ -14,16 +14,20 @@ function relativeTime(date: Date) {
   return `${Math.floor(mins / 60)}h ago`
 }
 
-function toParStr(total: number, holesPlayed: number) {
-  if (total === 0 || holesPlayed === 0) return null
-  const diff = total - PAR
+function calcPar(scores: Score[]) {
+  return scores.reduce((sum, s) => sum + (HOLES[s.hole_number - 1]?.par || 0), 0)
+}
+
+function toParStr(total: number, parForHoles: number) {
+  if (total === 0 || parForHoles === 0) return null
+  const diff = total - parForHoles
   if (diff === 0) return 'E'
   return diff > 0 ? `+${diff}` : `${diff}`
 }
 
-function toParColor(total: number) {
-  if (total === 0) return 'var(--text-muted)'
-  const diff = total - PAR
+function toParColor(total: number, parForHoles: number) {
+  if (total === 0 || parForHoles === 0) return 'var(--text-muted)'
+  const diff = total - parForHoles
   if (diff < 0) return 'var(--gold)'
   if (diff === 0) return 'var(--cream)'
   return '#ff8f8f'
@@ -159,7 +163,8 @@ export default function TournamentPage() {
                 {sorted.map((team, idx) => {
                   const total = getTotal(team.scores)
                   const holesPlayed = team.scores.length
-                  const par = toParStr(total, holesPlayed)
+                  const parForPlayed = calcPar(team.scores)
+                  const par = toParStr(total, parForPlayed)
                   const isLeading = idx === 0 && total > 0
                   const isMyTeam = team.id === myTeamId
                   return (
@@ -190,7 +195,7 @@ export default function TournamentPage() {
                       </div>
                       <div style={{ textAlign: 'right', minWidth: '3rem', flexShrink: 0 }}>
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.1rem', letterSpacing: '0.04em' }}>TO PAR</div>
-                        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: toParColor(total), lineHeight: 1 }}>
+                        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: toParColor(total, parForPlayed), lineHeight: 1 }}>
                           {par || (total > 0 ? total : '—')}
                         </div>
                       </div>
@@ -219,7 +224,8 @@ export default function TournamentPage() {
               {teesheetSorted.map((team) => {
                 const total = getTotal(team.scores)
                 const holesPlayed = team.scores.length
-                const par = toParStr(total, holesPlayed)
+                const parForPlayed = calcPar(team.scores)
+                const par = toParStr(total, parForPlayed)
                 const isMyTeam = team.id === myTeamId
                 return (
                   <div key={team.id} style={{
@@ -270,7 +276,7 @@ export default function TournamentPage() {
                     {total > 0 && (
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginBottom: '0.15rem', letterSpacing: '0.05em' }}>LIVE · {holesPlayed}/18</div>
-                        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: toParColor(total), lineHeight: 1 }}>
+                        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: toParColor(total, parForPlayed), lineHeight: 1 }}>
                           {par || total}
                         </div>
                       </div>
@@ -289,7 +295,8 @@ export default function TournamentPage() {
                 {teams.map(team => {
                   const total = getTotal(team.scores)
                   const holesPlayed = team.scores.length
-                  const par = toParStr(total, holesPlayed)
+                  const parForPlayed = calcPar(team.scores)
+                  const par = toParStr(total, parForPlayed)
                   const isMyTeam = team.id === myTeamId
                   return (
                     <div key={team.id} className="card" style={{ border: isMyTeam ? '1px solid rgba(201,168,76,0.35)' : undefined }}>
@@ -305,7 +312,7 @@ export default function TournamentPage() {
                         </div>
                         {par && (
                           <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: toParColor(total), lineHeight: 1 }}>{par}</div>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: toParColor(total, parForPlayed), lineHeight: 1 }}>{par}</div>
                             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>to par</div>
                           </div>
                         )}

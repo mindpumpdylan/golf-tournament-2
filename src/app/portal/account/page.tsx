@@ -148,8 +148,9 @@ export default function AccountPage() {
 
   const handleSaveProfile = async () => {
     setSaving(true)
+    setMessage('')
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
+    if (!session) { setSaving(false); return }
     const { error } = await supabase.from('profiles').update({
       full_name: fullName.trim() || null,
       nickname: nickname.trim() || null,
@@ -161,10 +162,17 @@ export default function AccountPage() {
       years_playing: parseInt(yearsPlaying) || null,
       shirt_size: shirtSize || null,
     }).eq('id', session.user.id)
-    setMessage(error ? 'Save failed: ' + error.message : 'Profile updated!')
-    setTimeout(() => setMessage(''), 3000)
     setSaving(false)
-    load()
+    if (error) {
+      const isMissingCol = error.message?.toLowerCase().includes('column') && error.message?.toLowerCase().includes('does not exist')
+      setMessage(isMissingCol
+        ? '⚠️ Database needs a migration — go to Supabase → SQL Editor and run: ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio text; ALTER TABLE profiles ADD COLUMN IF NOT EXISTS home_course text; ALTER TABLE profiles ADD COLUMN IF NOT EXISTS years_playing integer; ALTER TABLE profiles ADD COLUMN IF NOT EXISTS shirt_size text;'
+        : '❌ Save failed: ' + error.message)
+    } else {
+      setMessage('✓ Profile saved!')
+      setTimeout(() => setMessage(''), 4000)
+      load()
+    }
   }
 
   const totalScore = scores.reduce((sum, s) => sum + s.strokes, 0)
@@ -351,9 +359,23 @@ export default function AccountPage() {
         ))}
       </div>
 
-      {message && (
-        <div style={{ background: message.includes('failed') || message.includes('Failed') || message.includes('error') || message.includes('Error') ? 'rgba(255,107,107,0.08)' : 'rgba(201,168,76,0.1)', border: `1px solid ${message.includes('fail') || message.includes('error') || message.includes('Error') ? 'rgba(255,107,107,0.25)' : 'rgba(201,168,76,0.25)'}`, borderRadius: '1rem', padding: '1rem', color: message.includes('fail') || message.includes('error') || message.includes('Error') ? '#ff8f8f' : 'var(--gold)', fontSize: '0.9rem' }}>{message}</div>
-      )}
+      {message && (() => {
+        const isErr = message.startsWith('❌') || message.includes('failed') || message.includes('Failed')
+        const isWarn = message.startsWith('⚠️')
+        return (
+          <div style={{
+            background: isErr ? 'rgba(255,107,107,0.08)' : isWarn ? 'rgba(201,168,76,0.07)' : 'rgba(0,212,106,0.07)',
+            border: `1px solid ${isErr ? 'rgba(255,107,107,0.25)' : isWarn ? 'rgba(201,168,76,0.3)' : 'rgba(0,212,106,0.2)'}`,
+            borderRadius: '1rem', padding: '1rem',
+            color: isErr ? '#ff8f8f' : isWarn ? 'var(--gold)' : '#00d46a',
+            fontSize: '0.85rem', lineHeight: 1.6,
+            display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
+          }}>
+            <span style={{ flexShrink: 0, marginTop: '0.05rem' }}>{isErr ? '✗' : isWarn ? '⚠' : '✓'}</span>
+            <span>{message.replace(/^[❌⚠️✓]\s*/, '')}</span>
+          </div>
+        )
+      })()}
 
       {/* Profile Tab */}
       {tab === 'profile' && (
