@@ -164,7 +164,9 @@ export default function AccountPage() {
     }).eq('id', session.user.id)
     setSaving(false)
     if (error) {
-      const isMissingCol = error.message?.toLowerCase().includes('column') && error.message?.toLowerCase().includes('does not exist')
+      const isMissingCol = (error.message?.toLowerCase().includes('column') && error.message?.toLowerCase().includes('does not exist'))
+        || error.message?.toLowerCase().includes('schema cache')
+        || error.message?.toLowerCase().includes('could not find')
       setMessage(isMissingCol
         ? '⚠️ Database needs a migration — go to Supabase → SQL Editor and run: ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio text; ALTER TABLE profiles ADD COLUMN IF NOT EXISTS home_course text; ALTER TABLE profiles ADD COLUMN IF NOT EXISTS years_playing integer; ALTER TABLE profiles ADD COLUMN IF NOT EXISTS shirt_size text;'
         : '❌ Save failed: ' + error.message)
