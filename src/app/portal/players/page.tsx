@@ -9,16 +9,16 @@ export default function PlayersPage() {
   const [players, setPlayers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [sort, setSort] = useState<'name' | 'handicap'>('name')
+  const [sort, setSort] = useState<'name' | 'handicap' | 'playing'>('playing')
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
-        .from('tournament_registrations')
-        .select('player_id, profiles(id, full_name, nickname, avatar_url, handicap, home_course, bio)')
-        .eq('tournament_year', CURRENT_YEAR)
-      const list = (data || []).map((r: any) => r.profiles).filter(Boolean)
-      setPlayers(list)
+      const [{ data: allProfiles }, { data: optedIn }] = await Promise.all([
+        supabase.from('profiles').select('id, full_name, nickname, avatar_url, handicap, home_course, bio').order('full_name'),
+        supabase.from('tournament_registrations').select('player_id').eq('tournament_year', CURRENT_YEAR),
+      ])
+      const optedInIds = new Set((optedIn || []).map((r: any) => r.player_id))
+      setPlayers((allProfiles || []).map((p: any) => ({ ...p, playingThisYear: optedInIds.has(p.id) })))
       setLoading(false)
     }
     load()
@@ -40,6 +40,11 @@ export default function PlayersPage() {
       if (b.handicap == null) return -1
       return a.handicap - b.handicap
     })
+    if (sort === 'playing') result.sort((a, b) => {
+      if (a.playingThisYear && !b.playingThisYear) return -1
+      if (!a.playingThisYear && b.playingThisYear) return 1
+      return (a.full_name || '').localeCompare(b.full_name || '')
+    })
     return result
   }, [players, search, sort])
 
@@ -48,7 +53,7 @@ export default function PlayersPage() {
       <div>
         <h1 style={{ fontSize: '2.5rem', color: 'var(--electric)', marginBottom: '0.5rem' }}>👥 Players</h1>
         <p style={{ color: 'var(--text-muted)' }}>
-          {loading ? 'Loading...' : `${players.length} registered for the ${CURRENT_YEAR} High Country Classic`}
+          {loading ? 'Loading...' : `${players.length} member${players.length !== 1 ? 's' : ''} · ${players.filter(p => p.playingThisYear).length} opted in for ${CURRENT_YEAR}`}
         </p>
       </div>
 
@@ -67,7 +72,7 @@ export default function PlayersPage() {
             />
           </div>
           <div style={{ display: 'flex', gap: '0.375rem' }}>
-            {([['name', 'A–Z'], ['handicap', 'By HCP']] as const).map(([key, label]) => (
+            {([['name', 'A–Z'], ['handicap', 'By HCP'], ['playing', `Playing ${CURRENT_YEAR}`]] as const).map(([key, label]) => (
               <button key={key} onClick={() => setSort(key)} style={{
                 padding: '0.55rem 1rem', borderRadius: '0.875rem', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
                 background: sort === key ? 'rgba(201,168,76,0.15)' : 'var(--card)',
@@ -118,6 +123,9 @@ export default function PlayersPage() {
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {p.playingThisYear && (
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--gold)', background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.25)', borderRadius: '999px', padding: '0.12rem 0.5rem', letterSpacing: '0.04em' }}>Playing {CURRENT_YEAR}</span>
+                  )}
                   {p.handicap != null && (
                     <span className="badge-electric" style={{ fontSize: '0.72rem' }}>HCP {p.handicap}</span>
                   )}

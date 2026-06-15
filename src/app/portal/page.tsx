@@ -12,6 +12,16 @@ const CREAM = 'var(--cream)'
 const MUTED = 'var(--text-muted)'
 const CARD_MID = 'var(--card-mid)'
 
+function feedRelTime(iso: string) {
+  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (secs < 60) return 'just now'
+  const mins = Math.floor(secs / 60)
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
+}
+
 function SkeletonWidget() {
   return (
     <div style={{ ...CARD, minHeight: '180px', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -38,6 +48,7 @@ export default function PortalHome() {
   const [isRegistered, setIsRegistered] = useState(true)
   const [registering, setRegistering] = useState(false)
   const [pendingPairingRequests, setPendingPairingRequests] = useState<any[]>([])
+  const [activityFeed, setActivityFeed] = useState<Array<{ id: string; icon: string; text: string; avatar: string | null; initials: string; time: string }>>([])
   const [tournamentStatus, setTournamentStatus] = useState('')
   const [tournamentDate, setTournamentDate] = useState('')
   const [videoMuted, setVideoMuted] = useState(true)
@@ -121,6 +132,42 @@ export default function PortalHome() {
       setPendingPairingRequests(pairingReqs || [])
 
       try {
+        const [{ data: recentScores }, { data: recentMedia }, { data: recentPins }] = await Promise.all([
+          supabase.from('scores').select('id, hole_number, strokes, created_at, teams(name)').order('created_at', { ascending: false }).limit(5),
+          supabase.from('media_posts').select('id, hole_number, media_type, created_at, profiles(full_name, nickname, avatar_url)').eq('tournament_year', CURRENT_YEAR).order('created_at', { ascending: false }).limit(5),
+          supabase.from('closest_to_pin').select('id, hole_number, distance_feet, distance_inches, created_at, profiles(full_name, nickname, avatar_url)').eq('tournament_year', CURRENT_YEAR).order('created_at', { ascending: false }).limit(5),
+        ])
+        const feedItems = [
+          ...(recentScores || []).map((s: any) => ({
+            id: `score-${s.id}`,
+            icon: '🏌️',
+            text: `${s.teams?.name || 'A team'} scored ${s.strokes} on Hole ${s.hole_number}`,
+            avatar: null,
+            initials: '⛳',
+            time: s.created_at,
+          })),
+          ...(recentMedia || []).map((p: any) => ({
+            id: `photo-${p.id}`,
+            icon: p.media_type === 'video' ? '🎥' : '📷',
+            text: `${displayName(p.profiles)} posted a ${p.media_type === 'video' ? 'video' : 'photo'}${p.hole_number ? ` on Hole ${p.hole_number}` : ''}`,
+            avatar: p.profiles?.avatar_url || null,
+            initials: p.profiles?.full_name?.charAt(0) || '?',
+            time: p.created_at,
+          })),
+          ...(recentPins || []).map((pin: any) => ({
+            id: `pin-${pin.id}`,
+            icon: '🎯',
+            text: `${displayName(pin.profiles)} is closest to pin on Hole ${pin.hole_number} at ${pin.distance_feet}'${pin.distance_inches}"`,
+            avatar: pin.profiles?.avatar_url || null,
+            initials: pin.profiles?.full_name?.charAt(0) || '?',
+            time: pin.created_at,
+          })),
+        ]
+        feedItems.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+        setActivityFeed(feedItems.slice(0, 8))
+      } catch {}
+
+      try {
         const { data: settingsRows } = await supabase.from('tournament_settings').select('key, value').in('key', ['status', 'date'])
         settingsRows?.forEach((r: any) => {
           if (r.key === 'status') setTournamentStatus(r.value)
@@ -174,12 +221,12 @@ export default function PortalHome() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{ fontSize: '1.75rem' }}>🏌️</span>
             <div>
-              <p style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.2rem', color: GOLD }}>You're not registered for {CURRENT_YEAR} yet!</p>
-              <p style={{ color: MUTED, fontSize: '0.85rem' }}>Confirm your spot in the High Country Classic.</p>
+              <p style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.2rem', color: GOLD }}>You haven't opted in for {CURRENT_YEAR} yet!</p>
+              <p style={{ color: MUTED, fontSize: '0.85rem' }}>Opt in to confirm you're playing the {CURRENT_YEAR} High Country Classic.</p>
             </div>
           </div>
           <button onClick={handleRegister} disabled={registering} className="btn-electric" style={{ whiteSpace: 'nowrap', fontSize: '0.9rem' }}>
-            {registering ? 'Registering...' : `Register for ${CURRENT_YEAR}`}
+            {registering ? 'Opting in...' : `Opt In for ${CURRENT_YEAR}`}
           </button>
         </div>
       )}
@@ -221,7 +268,7 @@ export default function PortalHome() {
       )}
 
       {isRegistered && !loading && (() => {
-        const missing = [!profile?.handicap && 'Handicap', !profile?.avatar_url && 'Profile Photo', !profile?.phone_number && 'Phone'].filter(Boolean) as string[]
+        const missing = [!profile?.handicap && 'Handicap', !profile?.avatar_url && 'Profile Photo', !profile?.phone_number && 'Phone', !profile?.bio && 'Bio', !profile?.home_course && 'Home Course'].filter(Boolean) as string[]
         if (!missing.length) return null
         return (
           <div style={{ background: 'rgba(139,127,107,0.07)', border: '1px solid rgba(139,127,107,0.18)', borderRadius: '1rem', padding: '0.875rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
@@ -230,6 +277,30 @@ export default function PortalHome() {
           </div>
         )
       })()}
+
+      {/* Live Activity Feed */}
+      {activityFeed.length > 0 && !loading && (
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '1.5rem', overflow: 'hidden' }}>
+          <div style={{ padding: '0.875rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--green-live)', display: 'inline-block', animation: 'feedPulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
+            <p style={{ fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.08em', color: 'var(--green-live)' }}>LIVE ACTIVITY</p>
+          </div>
+          <style>{`@keyframes feedPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }`}</style>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {activityFeed.map((item, idx) => (
+              <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.7rem 1.5rem', borderTop: idx > 0 ? '1px solid rgba(90,74,50,0.2)' : 'none' }}>
+                <div style={{ width: '30px', height: '30px', borderRadius: '999px', overflow: 'hidden', background: GOLD, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: item.avatar ? '0' : '0.82rem', fontWeight: 700, color: '#0d0f0a', flexShrink: 0 }}>
+                  {item.avatar
+                    ? <img src={item.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : item.initials}
+                </div>
+                <p style={{ flex: 1, fontSize: '0.83rem', color: CREAM, lineHeight: 1.4 }}>{item.icon} {item.text}</p>
+                <span style={{ fontSize: '0.7rem', color: MUTED, flexShrink: 0, whiteSpace: 'nowrap' }}>{feedRelTime(item.time)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Hero */}
       <div style={{ border: '1px solid #3d3220', borderRadius: '2rem', padding: '3.5rem 2rem', textAlign: 'center', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -350,7 +421,7 @@ export default function PortalHome() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
                     <span style={{ fontSize: '0.85rem', color: MUTED }}>Status</span>
-                    <span style={{ background: 'rgba(201,168,76,0.12)', color: GOLD, border: '1px solid rgba(201,168,76,0.25)', borderRadius: '999px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: 700 }}>Registered</span>
+                    <span style={{ background: 'rgba(201,168,76,0.12)', color: GOLD, border: '1px solid rgba(201,168,76,0.25)', borderRadius: '999px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: 700 }}>Playing {CURRENT_YEAR}</span>
                   </div>
                   {myTeam?.tee_time && (
                     <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: '0.75rem', padding: '0.6rem 1rem', marginTop: '0.5rem' }}>

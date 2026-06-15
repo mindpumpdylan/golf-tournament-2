@@ -76,9 +76,11 @@ export default function ReservationsPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [resendingId, setResendingId] = useState<string | null>(null)
 
-  // Registration status
+  // Tournament participation state
   const [isRegistered, setIsRegistered] = useState(false)
   const [registering, setRegistering] = useState(false)
+  const [optingOut, setOptingOut] = useState(false)
+  const [confirmOptOut, setConfirmOptOut] = useState(false)
   const [hasAvailability, setHasAvailability] = useState(false)
   const [myTeamName, setMyTeamName] = useState<string | null>(null)
   const [signedUpEmails, setSignedUpEmails] = useState<Set<string>>(new Set())
@@ -136,6 +138,22 @@ export default function ReservationsPage() {
     await supabase.from('tournament_registrations').insert({ player_id: session.user.id, tournament_year: CURRENT_YEAR })
     setIsRegistered(true)
     setRegistering(false)
+    showMsg(`You're in for ${CURRENT_YEAR}! You can opt out any time before teams are announced.`)
+  }
+
+  const handleOptOut = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    setOptingOut(true)
+    const { error } = await supabase.from('tournament_registrations').delete().eq('player_id', session.user.id).eq('tournament_year', CURRENT_YEAR)
+    if (!error) {
+      setIsRegistered(false)
+      setConfirmOptOut(false)
+      showMsg(`You've opted out of the ${CURRENT_YEAR} tournament. Your account is still active — opt back in any time.`)
+    } else {
+      showMsg('Something went wrong. Please try again.', false)
+    }
+    setOptingOut(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -271,7 +289,7 @@ export default function ReservationsPage() {
 
       <div>
         <h1 style={{ fontSize: '2.5rem', color: GOLD, marginBottom: '0.5rem' }}>My Spots</h1>
-        <p style={{ color: MUTED }}>Your registration status and guest invitations</p>
+        <p style={{ color: MUTED }}>Your tournament participation and guest invitations</p>
       </div>
 
       {message && (
@@ -280,10 +298,10 @@ export default function ReservationsPage() {
         </div>
       )}
 
-      {/* ── My Registration ── */}
+      {/* ── Tournament Participation ── */}
       <div style={CARD}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-          <h2 style={{ fontSize: '1.3rem', color: CREAM }}>My Registration</h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+          <h2 style={{ fontSize: '1.3rem', color: CREAM }}>Tournament Participation</h2>
           <span style={{
             padding: '0.3rem 0.9rem', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 700,
             background: registrationComplete ? 'rgba(201,168,76,0.12)' : 'rgba(139,127,107,0.1)',
@@ -293,18 +311,21 @@ export default function ReservationsPage() {
             {registrationComplete ? `✓ Ready for ${CURRENT_YEAR}` : 'Incomplete'}
           </span>
         </div>
+        <p style={{ fontSize: '0.78rem', color: MUTED, marginBottom: '1.25rem', lineHeight: 1.5 }}>
+          Your account is permanent — tournament participation is year by year. Opt in when you're playing, opt out if plans change.
+        </p>
 
         <CheckRow
-          label={`Registered for ${CURRENT_YEAR}`}
+          label={`Opted in for ${CURRENT_YEAR}`}
           done={isRegistered}
-          detail={isRegistered ? 'You\'re in!' : undefined}
+          detail={isRegistered ? "You're playing!" : undefined}
           action={!isRegistered ? (
             <button
               onClick={handleSelfRegister}
               disabled={registering}
               style={{ padding: '0.3rem 0.85rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.35)', color: GOLD, whiteSpace: 'nowrap' }}
             >
-              {registering ? 'Registering...' : 'Register Now'}
+              {registering ? 'Opting in...' : `Opt In for ${CURRENT_YEAR}`}
             </button>
           ) : undefined}
         />
@@ -323,6 +344,48 @@ export default function ReservationsPage() {
           done={!!myTeamName}
           detail={myTeamName ?? 'Pending (admin assigns)'}
         />
+
+        {/* Opt-out section — only shown when opted in */}
+        {isRegistered && (
+          <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(61,50,32,0.5)' }}>
+            {!confirmOptOut ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <p style={{ fontSize: '0.8rem', color: MUTED }}>Plans changed? You can opt out before teams are finalized.</p>
+                <button
+                  onClick={() => setConfirmOptOut(true)}
+                  style={{ padding: '0.35rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'transparent', border: '1px solid rgba(255,107,107,0.3)', color: '#ff8f8f', whiteSpace: 'nowrap' }}
+                >
+                  Opt Out of {CURRENT_YEAR}
+                </button>
+              </div>
+            ) : myTeamName ? (
+              <div style={{ background: 'rgba(255,107,107,0.06)', border: '1px solid rgba(255,107,107,0.2)', borderRadius: '0.875rem', padding: '0.875rem 1rem' }}>
+                <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ff8f8f', marginBottom: '0.35rem' }}>Can't opt out — you're already on a team</p>
+                <p style={{ fontSize: '0.8rem', color: MUTED, lineHeight: 1.5 }}>You've been assigned to <strong style={{ color: CREAM }}>{myTeamName}</strong>. Contact the admin to be removed from your team before opting out.</p>
+                <button onClick={() => setConfirmOptOut(false)} style={{ marginTop: '0.75rem', padding: '0.3rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: 'transparent', border: '1px solid rgba(61,50,32,0.6)', color: MUTED }}>
+                  Dismiss
+                </button>
+              </div>
+            ) : (
+              <div style={{ background: 'rgba(255,107,107,0.06)', border: '1px solid rgba(255,107,107,0.2)', borderRadius: '0.875rem', padding: '0.875rem 1rem' }}>
+                <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ff8f8f', marginBottom: '0.35rem' }}>Opt out of {CURRENT_YEAR}?</p>
+                <p style={{ fontSize: '0.8rem', color: MUTED, marginBottom: '0.875rem', lineHeight: 1.5 }}>You'll be removed from the player list. Your account, past scores, and gallery photos stay intact. You can opt back in any time.</p>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    onClick={handleOptOut}
+                    disabled={optingOut}
+                    style={{ padding: '0.4rem 1rem', borderRadius: '0.625rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: 'rgba(255,107,107,0.15)', border: '1px solid rgba(255,107,107,0.35)', color: '#ff8f8f' }}
+                  >
+                    {optingOut ? 'Opting out...' : 'Yes, Opt Me Out'}
+                  </button>
+                  <button onClick={() => setConfirmOptOut(false)} style={{ padding: '0.4rem 1rem', borderRadius: '0.625rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: 'transparent', border: '1px solid rgba(61,50,32,0.6)', color: MUTED }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Inline handicap / GHIN editor */}
         <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(61,50,32,0.5)' }}>

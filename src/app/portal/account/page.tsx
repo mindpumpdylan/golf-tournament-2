@@ -433,23 +433,24 @@ export default function AccountPage() {
       {tab === 'reservations' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
-          {/* Tournament spot card */}
+          {/* Tournament participation card */}
           <div className="card">
-            <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>{CURRENT_YEAR} Tournament Spot</h2>
+            <h2 style={{ fontSize: '1.3rem', marginBottom: '0.5rem' }}>{CURRENT_YEAR} Tournament Participation</h2>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>Your account is permanent — you opt in or out each year.</p>
             <div style={{ background: registration ? 'rgba(201,168,76,0.08)' : 'rgba(61,50,32,0.3)', border: `1px solid ${registration ? 'rgba(201,168,76,0.3)' : 'var(--navy-border)'}`, borderRadius: '1rem', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
               <div>
                 <p style={{ fontWeight: 700, fontSize: '1.05rem', color: registration ? 'var(--gold)' : 'var(--white)', marginBottom: '0.2rem' }}>
-                  {registration ? '✓ Spot Reserved' : 'Not yet registered'}
+                  {registration ? `✓ Opted in for ${CURRENT_YEAR}` : `Not opted in for ${CURRENT_YEAR}`}
                 </p>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                   {registration
-                    ? `Registered ${format(new Date(registration.created_at), 'MMM d, yyyy')}`
-                    : 'Register on the home page to secure your spot'}
+                    ? `Opted in ${format(new Date(registration.created_at), 'MMM d, yyyy')}`
+                    : 'Go to My Spots to opt in for this year'}
                 </p>
               </div>
               {!registration && (
-                <a href="/portal" style={{ padding: '0.5rem 1.1rem', borderRadius: '0.75rem', background: 'var(--gold)', color: '#0d0f0a', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>
-                  Register Now
+                <a href="/portal/reservations" style={{ padding: '0.5rem 1.1rem', borderRadius: '0.75rem', background: 'var(--gold)', color: '#0d0f0a', fontWeight: 700, fontSize: '0.85rem', textDecoration: 'none' }}>
+                  Opt In for {CURRENT_YEAR}
                 </a>
               )}
             </div>

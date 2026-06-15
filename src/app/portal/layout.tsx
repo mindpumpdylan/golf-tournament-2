@@ -15,6 +15,7 @@ const navItems = [
   { href: '/portal/pin', label: 'Pin' },
   { href: '/portal/gallery', label: 'Gallery' },
   { href: '/portal/players', label: 'Players' },
+  { href: '/portal/course', label: 'Course' },
 ]
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -268,4 +269,5 @@ const NAV_ICONS: Record<string, string> = {
   '/portal/pin': '📍',
   '/portal/gallery': '📷',
   '/portal/players': '👥',
+  '/portal/course': '⛳',
 }
