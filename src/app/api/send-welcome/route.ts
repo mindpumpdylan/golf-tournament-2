@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
             <p style="margin: 0; font-size: 0.9rem;">📅 <strong>Pick your dates</strong> — vote on which weekend works best for the group</p>
             <p style="margin: 0; font-size: 0.9rem;">🏌️ <strong>Invite a guest</strong> — bring a friend, family member, or client along</p>
             <p style="margin: 0; font-size: 0.9rem;">👤 <strong>Complete your profile</strong> — add your handicap and photo so the team knows you</p>
+            <p style="margin: 0; font-size: 0.9rem;">📱 <strong>Add your phone number</strong> — get text updates about tee times and tournament day info</p>
           </div>
         </div>
 

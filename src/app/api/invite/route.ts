@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
             Claim My Spot →
           </a>
         </div>
+        <p style="margin: 0 0 1rem; color: #8b7d6b; font-size: 0.85rem;">Once you've claimed your spot, please add your phone number in your profile — we'll send text updates about tee times and tournament day info.</p>
         <p style="color: #8b7d6b; font-size: 0.8rem; border-top: 1px solid #3d3220; padding-top: 1rem; margin: 0;">If you weren't expecting this invite, you can ignore this email.</p>
       </div>
     `
