@@ -35,6 +35,7 @@ export default function ScorecardPage() {
   const [message, setMessage] = useState('')
   const [flash, setFlash] = useState<number | null>(null)
   const [birdieFlash, setBirdieFlash] = useState<number | null>(null)
+  const [isDirty, setIsDirty] = useState(false)
 
   const load = async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -60,6 +61,13 @@ export default function ScorecardPage() {
     return () => { supabase.removeChannel(sub) }
   }, [])
 
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
+
   const handleSave = async () => {
     if (!myTeam) return
     setSaving(true)
@@ -82,6 +90,7 @@ export default function ScorecardPage() {
     }
     setMessage(hasError ? 'Some scores failed to save.' : 'Scores saved!')
     setTimeout(() => setMessage(''), 3000)
+    setIsDirty(false)
     setSaving(false)
     load()
   }
@@ -167,6 +176,13 @@ export default function ScorecardPage() {
         </div>
       )}
 
+      {isDirty && canEdit && (
+        <div style={{ position: 'sticky', top: '68px', zIndex: 10, background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '1rem', padding: '0.75rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.88rem', color: 'var(--gold)', fontWeight: 700 }}>⚠ Unsaved changes</span>
+          <button onClick={handleSave} disabled={saving} style={{ padding: '0.35rem 0.875rem', borderRadius: '0.625rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: 'var(--gold)', color: '#0d0f0a', border: 'none' }}>Save Now</button>
+        </div>
+      )}
+
       {/* Front 9 */}
       <ScorecardTable
         label="FRONT 9"
@@ -176,6 +192,7 @@ export default function ScorecardPage() {
         totalLabel="OUT"
         editing={editing}
         setEditing={setEditing}
+        markDirty={() => setIsDirty(true)}
         teamLabel={teamLabel}
         canEdit={canEdit}
         flash={flash}
@@ -193,6 +210,7 @@ export default function ScorecardPage() {
         totalLabel="IN"
         editing={editing}
         setEditing={setEditing}
+        markDirty={() => setIsDirty(true)}
         teamLabel={teamLabel}
         canEdit={canEdit}
         flash={flash}
@@ -220,7 +238,7 @@ export default function ScorecardPage() {
 }
 
 function ScorecardTable({
-  label, holes, parTotal, strokeTotal, totalLabel, editing, setEditing, teamLabel, canEdit, flash, setFlash, birdieFlash, setBirdieFlash
+  label, holes, parTotal, strokeTotal, totalLabel, editing, setEditing, markDirty, teamLabel, canEdit, flash, setFlash, birdieFlash, setBirdieFlash
 }: {
   label: string
   holes: typeof HOLES
@@ -229,6 +247,7 @@ function ScorecardTable({
   totalLabel: string
   editing: { [hole: number]: string }
   setEditing: React.Dispatch<React.SetStateAction<{ [hole: number]: string }>>
+  markDirty: () => void
   teamLabel: string
   canEdit: boolean
   flash: number | null
@@ -305,15 +324,16 @@ function ScorecardTable({
                   {canEdit ? (
                     <input
                       id={`hole-${h.number}`}
-                      type="number" min="1" max="20"
+                      type="number" min="1" max="15"
                       inputMode="numeric"
                       value={val}
                       className={isBirdie ? 'birdie-cell' : isFlashing ? 'flash-cell' : ''}
                       onChange={e => {
                         const v = e.target.value
                         setEditing(prev => ({ ...prev, [h.number]: v }))
+                        markDirty()
                         const n = parseInt(v)
-                        if (n >= 1 && n <= 20) {
+                        if (n >= 1 && n <= 15) {
                           if (n < h.par) {
                             setBirdieFlash(h.number)
                             setTimeout(() => setBirdieFlash(null), 600)
@@ -328,7 +348,7 @@ function ScorecardTable({
                       style={{
                         width: '100%', minWidth: '2rem', textAlign: 'center',
                         padding: '0.35rem 0.2rem', borderRadius: '0.4rem',
-                        border: `1px solid ${val ? 'rgba(201,168,76,0.3)' : 'var(--border)'}`,
+                        border: val && (parseInt(val) < 1 || parseInt(val) > 15) ? '2px solid rgba(255,107,107,0.6)' : `1px solid ${val ? 'rgba(201,168,76,0.3)' : 'var(--border)'}`,
                         fontSize: '0.85rem', fontWeight: 700, outline: 'none',
                         transition: 'all 0.15s', fontFamily: 'inherit',
                         ...cellStyle,

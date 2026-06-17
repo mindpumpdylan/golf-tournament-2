@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import type { Profile } from '@/lib/types'
 import { COURSE_NAME, COURSE_LOCATION, CURRENT_YEAR } from '@/lib/constants'
-import { displayName } from '@/lib/utils'
+import { displayName, fmtTime } from '@/lib/utils'
 
 const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '1.5rem', padding: '1.5rem' }
 const GOLD = 'var(--gold)'
@@ -429,7 +429,7 @@ export default function PortalHome() {
                   {myTeam?.tee_time && (
                     <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: '0.75rem', padding: '0.6rem 1rem', marginTop: '0.5rem' }}>
                       <p style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.08em', marginBottom: '0.2rem' }}>TEE TIME</p>
-                      <p style={{ fontSize: '1.1rem', fontWeight: 700, color: GOLD }}>{myTeam.tee_time}</p>
+                      <p style={{ fontSize: '1.1rem', fontWeight: 700, color: GOLD }}>{fmtTime(myTeam.tee_time)}</p>
                     </div>
                   )}
                 </div>

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, HOLES, PAR } from '@/lib/constants'
 import { format } from 'date-fns'
-import { displayName as getDisplayName } from '@/lib/utils'
+import { displayName as getDisplayName, fmtTime, toTimeInput } from '@/lib/utils'
 
 const SIGNUP_URL = 'https://highcountryclassic.com/signup'
 
@@ -46,6 +46,11 @@ export default function AdminPage() {
 
   // Pairing requests state
   const [confirmedPairs, setConfirmedPairs] = useState<any[]>([])
+
+  // Team editing state
+  const [editingTeamName, setEditingTeamName] = useState<{ id: string; value: string } | null>(null)
+  const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null)
+  const [addPlayerId, setAddPlayerId] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -99,7 +104,7 @@ export default function AdminPage() {
     setTeams(tm || [])
     if (tm) {
       const map: { [id: string]: string } = {}
-      tm.forEach((t: any) => { map[t.id] = t.tee_time || '' })
+      tm.forEach((t: any) => { map[t.id] = toTimeInput(t.tee_time || '') })
       setTeeTimeInputs(map)
     }
 
@@ -187,6 +192,25 @@ export default function AdminPage() {
     setTournamentStatus(value); setUpdatingStatus(false)
     setMessage(`Status updated to "${STATUS_OPTIONS.find(s => s.value === value)?.label}"`)
     setTimeout(() => setMessage(''), 3000)
+  }
+
+  const handleRenameTeam = async (id: string, name: string) => {
+    if (!name.trim()) return
+    await supabase.from('teams').update({ name: name.trim() }).eq('id', id)
+    setEditingTeamName(null)
+    loadAll()
+  }
+
+  const handleRemoveMember = async (teamId: string, playerId: string) => {
+    await supabase.from('team_members').delete().eq('team_id', teamId).eq('player_id', playerId)
+    loadAll()
+  }
+
+  const handleAddMember = async (teamId: string, playerId: string) => {
+    if (!playerId) return
+    await supabase.from('team_members').insert({ team_id: teamId, player_id: playerId })
+    setAddPlayerId('')
+    loadAll()
   }
 
   const handleSetTournamentDate = async (dateStr: string) => {
@@ -476,7 +500,22 @@ export default function AdminPage() {
                   <div key={team.id} style={{ background: 'var(--navy-light)', borderRadius: '1rem', padding: '1rem 1.25rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--gold)' }}>{team.name}</span>
+                        {editingTeamName?.id === team.id ? (
+                          <input
+                            value={editingTeamName.value}
+                            onChange={e => setEditingTeamName({ id: team.id, value: e.target.value })}
+                            onBlur={() => handleRenameTeam(team.id, editingTeamName.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') handleRenameTeam(team.id, editingTeamName.value); if (e.key === 'Escape') setEditingTeamName(null) }}
+                            autoFocus
+                            style={{ background: 'none', border: 'none', borderBottom: '2px solid var(--gold)', color: 'var(--gold)', fontWeight: 700, fontSize: '1rem', fontFamily: 'inherit', outline: 'none', width: '160px', padding: '0 0 2px' }}
+                          />
+                        ) : (
+                          <span
+                            style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--gold)', cursor: 'pointer' }}
+                            onClick={() => setEditingTeamName({ id: team.id, value: team.name })}
+                            title="Click to rename"
+                          >{team.name}</span>
+                        )}
                         {team.is_locked && <span style={{ padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 700, background: 'rgba(255,107,107,0.12)', color: '#ff8f8f', border: '1px solid rgba(255,107,107,0.25)' }}>🔒 Locked</span>}
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -488,6 +527,11 @@ export default function AdminPage() {
                         }}>
                           {team.is_locked ? '🔓 Unlock' : '🔒 Lock Scoring'}
                         </button>
+                        <button
+                          onClick={() => { setExpandedTeamId(expandedTeamId === team.id ? null : team.id); setAddPlayerId('') }}
+                          style={{ padding: '0.35rem 0.875rem', borderRadius: '0.65rem', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', background: expandedTeamId === team.id ? 'rgba(201,168,76,0.15)' : 'var(--navy-card)', border: '1px solid rgba(201,168,76,0.25)', color: 'var(--gold)' }}>
+                          {expandedTeamId === team.id ? 'Done' : 'Edit Members'}
+                        </button>
                         <button onClick={() => handleDeleteTeam(team.id)} style={{ background: 'none', border: 'none', color: '#ff6b6b', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700 }}>Delete</button>
                       </div>
                     </div>
@@ -496,12 +540,15 @@ export default function AdminPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.04em', minWidth: '60px' }}>TEE TIME</span>
                       <input
+                        type="time"
                         className="input"
                         value={teeTimeInputs[team.id] || ''}
                         onChange={e => setTeeTimeInputs(prev => ({ ...prev, [team.id]: e.target.value }))}
-                        placeholder="e.g. 8:00 AM"
                         style={{ width: '140px', padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
                       />
+                      {teeTimeInputs[team.id] && (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{fmtTime(teeTimeInputs[team.id])}</span>
+                      )}
                       <button
                         onClick={() => handleSaveTeeTime(team.id)}
                         disabled={savingTeeTime === team.id}
@@ -513,10 +560,33 @@ export default function AdminPage() {
                     {/* Players */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                       {team.team_members?.map((m: any) => (
-                        <span key={m.id} style={{ padding: '0.3rem 0.75rem', borderRadius: '999px', fontSize: '0.8rem', background: 'var(--navy-card)', color: 'var(--white)' }}>
+                        <span key={m.id} style={{ padding: '0.3rem 0.75rem', borderRadius: '999px', fontSize: '0.8rem', background: 'var(--navy-card)', color: 'var(--white)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                           {m.profiles?.full_name} (HCP: {m.profiles?.handicap ?? 'N/A'})
+                          {expandedTeamId === team.id && (
+                            <button onClick={() => handleRemoveMember(team.id, m.player_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff8f8f', fontSize: '1rem', lineHeight: 1, padding: '0', marginLeft: '0.1rem' }}>×</button>
+                          )}
                         </span>
                       ))}
+                      {expandedTeamId === team.id && (() => {
+                        const assignedIds = new Set(teams.flatMap((t: any) => t.team_members?.map((m: any) => m.player_id) || []))
+                        const unassigned = players.filter(p => !assignedIds.has(p.id))
+                        if (unassigned.length === 0) return null
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', marginTop: '0.25rem' }}>
+                            <select
+                              value={addPlayerId}
+                              onChange={e => setAddPlayerId(e.target.value)}
+                              style={{ flex: 1, padding: '0.35rem 0.5rem', borderRadius: '0.5rem', background: 'var(--navy-card)', border: '1px solid var(--navy-border)', color: addPlayerId ? 'var(--cream)' : 'var(--text-muted)', fontSize: '0.8rem', fontFamily: 'inherit' }}
+                            >
+                              <option value="">+ Add player…</option>
+                              {unassigned.map((p: any) => <option key={p.id} value={p.id}>{p.full_name} (HCP: {p.handicap ?? 'N/A'})</option>)}
+                            </select>
+                            {addPlayerId && (
+                              <button onClick={() => handleAddMember(team.id, addPlayerId)} style={{ padding: '0.35rem 0.875rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.25)', color: 'var(--gold)', whiteSpace: 'nowrap' }}>Add</button>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
                 ))}

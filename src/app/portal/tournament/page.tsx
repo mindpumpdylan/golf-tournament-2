@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, ALL_HOLES, HOLES, PAR } from '@/lib/constants'
-import { displayName } from '@/lib/utils'
+import { displayName, fmtTime } from '@/lib/utils'
 import type { Score } from '@/lib/types'
 
 function relativeTime(date: Date) {
@@ -261,7 +261,7 @@ export default function TournamentPage() {
                           borderRadius: '0.875rem', padding: '0.45rem 0.875rem', textAlign: 'center',
                         }}>
                           <p style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.07em', marginBottom: '0.15rem' }}>TEE TIME</p>
-                          <p style={{ fontSize: '1.05rem', fontWeight: 700, color: isMyTeam ? 'var(--gold)' : 'var(--cream)', lineHeight: 1 }}>{team.tee_time}</p>
+                          <p style={{ fontSize: '1.05rem', fontWeight: 700, color: isMyTeam ? 'var(--gold)' : 'var(--cream)', lineHeight: 1 }}>{fmtTime(team.tee_time)}</p>
                         </div>
                       ) : (
                         <div style={{ background: 'var(--card-mid)', border: '1px solid var(--border)', borderRadius: '0.875rem', padding: '0.45rem 0.875rem', textAlign: 'center' }}>
