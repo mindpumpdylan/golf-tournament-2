@@ -61,6 +61,53 @@ export default function PortalHome() {
     }
   }
 
+  const loadMedia = async () => {
+    const { data: photos } = await supabase.from('media_posts').select('cloudinary_url, media_type, hole_number').eq('tournament_year', CURRENT_YEAR).eq('media_type', 'photo').order('created_at', { ascending: false }).limit(4)
+    setRecentPhotos(photos || [])
+    try {
+      const [{ data: recentScores }, { data: recentMedia }, { data: recentPins }] = await Promise.all([
+        supabase.from('scores').select('id, hole_number, strokes, created_at, teams(name)').order('created_at', { ascending: false }).limit(5),
+        supabase.from('media_posts').select('id, hole_number, media_type, created_at, profiles(full_name, nickname, avatar_url)').eq('tournament_year', CURRENT_YEAR).order('created_at', { ascending: false }).limit(5),
+        supabase.from('closest_to_pin').select('id, hole_number, distance_feet, distance_inches, created_at, profiles(full_name, nickname, avatar_url)').eq('tournament_year', CURRENT_YEAR).order('created_at', { ascending: false }).limit(5),
+      ])
+      const feedItems = [
+        ...(recentScores || []).map((s: any) => ({
+          id: `score-${s.id}`,
+          icon: '🏌️',
+          text: `${s.teams?.name || 'A team'} scored ${s.strokes} on Hole ${s.hole_number}`,
+          avatar: null,
+          initials: '⛳',
+          time: s.created_at,
+        })),
+        ...(recentMedia || []).map((p: any) => ({
+          id: `photo-${p.id}`,
+          icon: p.media_type === 'video' ? '🎥' : '📷',
+          text: `${displayName(p.profiles)} posted a ${p.media_type === 'video' ? 'video' : 'photo'}${p.hole_number ? ` on Hole ${p.hole_number}` : ''}`,
+          avatar: p.profiles?.avatar_url || null,
+          initials: p.profiles?.full_name?.charAt(0) || '?',
+          time: p.created_at,
+        })),
+        ...(recentPins || []).map((pin: any) => ({
+          id: `pin-${pin.id}`,
+          icon: '🎯',
+          text: `${displayName(pin.profiles)} is closest to pin on Hole ${pin.hole_number} at ${pin.distance_feet}'${pin.distance_inches}"`,
+          avatar: pin.profiles?.avatar_url || null,
+          initials: pin.profiles?.full_name?.charAt(0) || '?',
+          time: pin.created_at,
+        })),
+      ]
+      feedItems.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+      setActivityFeed(feedItems.slice(0, 8))
+    } catch {}
+  }
+
+  useEffect(() => {
+    const sub = supabase.channel('home-media-feed')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'media_posts' }, loadMedia)
+      .subscribe()
+    return () => { supabase.removeChannel(sub) }
+  }, [])
+
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
@@ -117,8 +164,7 @@ export default function PortalHome() {
         setPinLeaders(pinData.filter((e: any) => { if (seen.has(e.hole_number)) return false; seen.add(e.hole_number); return true }).slice(0, 3))
       }
 
-      const { data: photos } = await supabase.from('media_posts').select('cloudinary_url, media_type, hole_number').eq('tournament_year', CURRENT_YEAR).eq('media_type', 'photo').order('created_at', { ascending: false }).limit(4)
-      setRecentPhotos(photos || [])
+      await loadMedia()
 
       const { data: reg } = await supabase.from('tournament_registrations').select('id').eq('player_id', uid).eq('tournament_year', CURRENT_YEAR).maybeSingle()
       setIsRegistered(!!reg)
@@ -130,42 +176,6 @@ export default function PortalHome() {
         .eq('tournament_year', CURRENT_YEAR)
         .eq('status', 'pending')
       setPendingPairingRequests(pairingReqs || [])
-
-      try {
-        const [{ data: recentScores }, { data: recentMedia }, { data: recentPins }] = await Promise.all([
-          supabase.from('scores').select('id, hole_number, strokes, created_at, teams(name)').order('created_at', { ascending: false }).limit(5),
-          supabase.from('media_posts').select('id, hole_number, media_type, created_at, profiles(full_name, nickname, avatar_url)').eq('tournament_year', CURRENT_YEAR).order('created_at', { ascending: false }).limit(5),
-          supabase.from('closest_to_pin').select('id, hole_number, distance_feet, distance_inches, created_at, profiles(full_name, nickname, avatar_url)').eq('tournament_year', CURRENT_YEAR).order('created_at', { ascending: false }).limit(5),
-        ])
-        const feedItems = [
-          ...(recentScores || []).map((s: any) => ({
-            id: `score-${s.id}`,
-            icon: '🏌️',
-            text: `${s.teams?.name || 'A team'} scored ${s.strokes} on Hole ${s.hole_number}`,
-            avatar: null,
-            initials: '⛳',
-            time: s.created_at,
-          })),
-          ...(recentMedia || []).map((p: any) => ({
-            id: `photo-${p.id}`,
-            icon: p.media_type === 'video' ? '🎥' : '📷',
-            text: `${displayName(p.profiles)} posted a ${p.media_type === 'video' ? 'video' : 'photo'}${p.hole_number ? ` on Hole ${p.hole_number}` : ''}`,
-            avatar: p.profiles?.avatar_url || null,
-            initials: p.profiles?.full_name?.charAt(0) || '?',
-            time: p.created_at,
-          })),
-          ...(recentPins || []).map((pin: any) => ({
-            id: `pin-${pin.id}`,
-            icon: '🎯',
-            text: `${displayName(pin.profiles)} is closest to pin on Hole ${pin.hole_number} at ${pin.distance_feet}'${pin.distance_inches}"`,
-            avatar: pin.profiles?.avatar_url || null,
-            initials: pin.profiles?.full_name?.charAt(0) || '?',
-            time: pin.created_at,
-          })),
-        ]
-        feedItems.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
-        setActivityFeed(feedItems.slice(0, 8))
-      } catch {}
 
       try {
         const { data: settingsRows } = await supabase.from('tournament_settings').select('key, value').in('key', ['status', 'date'])
