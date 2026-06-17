@@ -189,7 +189,7 @@ export default function PortalHome() {
     if (profile) {
       fetch('/api/send-welcome', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ email: profile.email, name: displayName(profile) }),
       }).catch(() => {})
     }

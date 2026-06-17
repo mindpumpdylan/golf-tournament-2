@@ -1,8 +1,19 @@
+import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { CURRENT_YEAR } from '@/lib/constants'
 
 export async function POST(req: NextRequest) {
+  const authToken = req.headers.get('authorization')?.replace('Bearer ', '')
+  if (!authToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(authToken)
+  if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { email, name } = await req.json()
   if (!email || !name) return NextResponse.json({ error: 'Missing email or name' }, { status: 400 })
 

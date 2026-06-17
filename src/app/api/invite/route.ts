@@ -1,8 +1,21 @@
+import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import twilio from 'twilio'
 
 export async function POST(req: NextRequest) {
+  const authToken = req.headers.get('authorization')?.replace('Bearer ', '')
+  if (!authToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(authToken)
+  if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { data: prof } = await supabaseAdmin.from('profiles').select('is_admin').eq('id', user.id).single()
+  if (!prof?.is_admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   const resend = new Resend(process.env.RESEND_API_KEY)
   const { email, name, token, inviter, phone } = await req.json()
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL

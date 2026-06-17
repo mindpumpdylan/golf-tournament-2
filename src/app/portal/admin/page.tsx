@@ -712,8 +712,9 @@ function ReservationsAdmin() {
     await supabase.from('reservations').update({ invite_token: token, invite_expires_at: expires.toISOString(), status: 'pending' }).eq('id', r.id)
     let emailOk = false
     if (r.guest_email) {
+      const { data: { session: invSession } } = await supabase.auth.getSession()
       const res = await fetch('/api/invite', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${invSession?.access_token}` },
         body: JSON.stringify({ email: r.guest_email, name: r.guest_name, token, inviter: 'High Country Classic', phone: r.guest_phone || undefined })
       })
       emailOk = res.ok
