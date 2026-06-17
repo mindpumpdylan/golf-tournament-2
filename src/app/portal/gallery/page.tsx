@@ -76,7 +76,12 @@ export default function GalleryPage() {
   }
 
   const handleDelete = async (id: string) => {
-    await supabase.from('media_posts').delete().eq('id', id)
+    const { data: { session } } = await supabase.auth.getSession()
+    await fetch('/api/admin/delete-gallery', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ id }),
+    })
     setPosts(prev => prev.filter(p => p.id !== id))
     setConfirmDelete(null)
     if (lightbox) setLightbox(null)
