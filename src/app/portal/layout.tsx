@@ -169,8 +169,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       <div style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 99,
         width: '280px', maxWidth: '85vw',
-        background: '#111a0f',
-        borderLeft: '1px solid #3d3220',
+        background: '#0c1609',
+        borderLeft: '1px solid #4a3a28',
         display: 'flex', flexDirection: 'column',
         transform: menuOpen ? 'translateX(0)' : 'translateX(100%)',
         transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -178,7 +178,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         boxShadow: menuOpen ? '-8px 0 32px rgba(0,0,0,0.6)' : 'none',
       }}>
         {/* Drawer header */}
-        <div style={{ padding: '1.25rem 1.25rem 1rem', borderBottom: '1px solid #3d3220', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '1.25rem 1.25rem 1rem', borderBottom: '1px solid #4a3a28', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
             <div style={{ width: '28px', height: '28px', borderRadius: '999px', overflow: 'hidden', background: '#c9a84c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: '#0d0f0a', flexShrink: 0 }}>
               {profile?.avatar_url
@@ -244,7 +244,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         </div>
 
         {/* Drawer footer */}
-        <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #3d3220' }}>
+        <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #4a3a28' }}>
           <button onClick={handleSignOut} style={{
             width: '100%', padding: '0.75rem', borderRadius: '0.875rem', fontSize: '0.82rem', fontWeight: 700,
             background: 'rgba(255,107,107,0.07)', border: '1px solid rgba(255,107,107,0.2)',
