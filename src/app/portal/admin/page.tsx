@@ -8,6 +8,15 @@ import { displayName as getDisplayName, fmtTime, toTimeInput } from '@/lib/utils
 
 const SIGNUP_URL = 'https://highcountryclassic.com/signup'
 
+const TEAM_NAME_POOL = [
+  'Eagle Squadron', 'Birdie Brigade', 'Par Excellence', 'The Back Nine',
+  'Iron Eagles', 'Sand Trap Kings', 'Bogey Warriors', 'The Scratch Pack',
+  'Double Eagle', 'Fairway Force', 'Summit Swingers', 'Peak Putters',
+  'Ridge Riders', 'Alpine Aces', 'Mountain Masters', 'The Divot Crew',
+  'Mulligan Men', 'Cart Path Heroes', 'The Nineteenth', 'Ace Hunters',
+  'The Chip Shots', 'Sunday Drivers', 'Rough Riders',
+]
+
 const STATUS_OPTIONS = [
   { value: 'pre-tournament',    label: 'Pre-Tournament',    desc: 'Registration not yet open' },
   { value: 'registration-open', label: 'Registration Open', desc: 'Players can register and submit availability' },
@@ -178,7 +187,9 @@ export default function AdminPage() {
     for (let i = 0; i < autoBalancePreview.length; i++) {
       const members = autoBalancePreview[i]
       if (members.length === 0) continue
-      const { data: team } = await supabase.from('teams').insert({ name: `Team ${i + 1}`, tournament_year: CURRENT_YEAR }).select().single()
+      const shuffled = [...TEAM_NAME_POOL].sort(() => Math.random() - 0.5)
+      const teamName = shuffled[i] ?? `Team ${i + 1}`
+      const { data: team } = await supabase.from('teams').insert({ name: teamName, tournament_year: CURRENT_YEAR }).select().single()
       if (team) await supabase.from('team_members').insert(members.map((p: any) => ({ team_id: team.id, player_id: p.id })))
     }
     setAutoBalancePreview([])
