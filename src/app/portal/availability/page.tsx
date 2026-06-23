@@ -2,9 +2,11 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR } from '@/lib/constants'
+import { useRequireAuth } from '@/lib/auth-hooks'
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isSameDay } from 'date-fns'
 
 export default function AvailabilityPage() {
+  const { ready } = useRequireAuth()
   const [userId, setUserId] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
@@ -61,7 +63,7 @@ export default function AvailabilityPage() {
     setTournamentDate(setting?.value || null)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (ready) load() }, [ready])
 
   const toggleDate = (date: Date) => {
     setSelectedDates(prev =>
@@ -101,6 +103,8 @@ export default function AvailabilityPage() {
     .sort(([, a], [, b]) => b - a)
     .map(([date, count]) => ({ date, count }))
   const maxVotes = sortedVotes[0]?.count || 1
+
+  if (!ready) return null
 
   return (
     <div style={{ maxWidth: '680px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

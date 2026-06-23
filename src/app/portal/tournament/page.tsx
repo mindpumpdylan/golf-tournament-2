@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, ALL_HOLES, HOLES, PAR } from '@/lib/constants'
 import { displayName, fmtTime } from '@/lib/utils'
+import { useRequireAuth } from '@/lib/auth-hooks'
 import type { Score } from '@/lib/types'
 
 function relativeTime(date: Date) {
@@ -34,6 +35,7 @@ function toParColor(total: number, parForHoles: number) {
 }
 
 export default function TournamentPage() {
+  const { ready } = useRequireAuth()
   const [teams, setTeams] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -72,19 +74,21 @@ export default function TournamentPage() {
   }, [])
 
   useEffect(() => {
+    if (!ready) return
     load()
     const sub = supabase.channel('scores-tournament').on('postgres_changes', { event: '*', schema: 'public', table: 'scores' }, load).subscribe()
     const tick = setInterval(() => forceUpdate(n => n + 1), 10000)
     return () => { supabase.removeChannel(sub); clearInterval(tick) }
-  }, [load])
+  }, [ready, load])
 
   useEffect(() => {
+    if (!ready) return
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
       const { data: member } = await supabase.from('team_members').select('team_id').eq('player_id', session.user.id).maybeSingle()
       if (member) setMyTeamId(member.team_id)
     })
-  }, [])
+  }, [ready])
 
   const getTotal = (scores: Score[]) => scores.reduce((sum, s) => sum + s.strokes, 0)
   const sorted = [...teams].sort((a, b) => {
@@ -101,6 +105,8 @@ export default function TournamentPage() {
     if (!b.tee_time) return -1
     return a.tee_time.localeCompare(b.tee_time)
   })
+
+  if (!ready) return null
 
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '2rem 0' }}>

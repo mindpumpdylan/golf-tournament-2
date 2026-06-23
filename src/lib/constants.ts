@@ -4,6 +4,10 @@ export const COURSE_LOCATION = 'Camino, CA'
 export const CURRENT_YEAR = new Date().getFullYear()
 export const PAR = 70
 
+export const SUPPORT_EMAIL = 'dylan@mindpumpmedia.com'
+export const SUPPORT_PHONE = '(833) 967-1229'
+export const SMS_MESSAGE_TYPE = 'Reminder and Updates'
+
 export const HOLES = [
   { number: 1,  name: 'GoldSeeker',      par: 4, handicap: 5,  yards: '331–418' },
   { number: 2,  name: 'Strike It Rich',  par: 3, handicap: 17, yards: '78–154'  },

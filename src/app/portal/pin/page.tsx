@@ -3,10 +3,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, HOLES } from '@/lib/constants'
 import { displayName } from '@/lib/utils'
+import { useRequireAuth } from '@/lib/auth-hooks'
 
 const PAR3_HOLES = HOLES.filter(h => h.par === 3)
 
 export default function PinPage() {
+  const { ready } = useRequireAuth()
   const [userId, setUserId] = useState('')
   const [players, setPlayers] = useState<any[]>([])
   const [entries, setEntries] = useState<any[]>([])
@@ -29,10 +31,11 @@ export default function PinPage() {
   }
 
   useEffect(() => {
+    if (!ready) return
     load()
     const sub = supabase.channel('pin-live').on('postgres_changes', { event: '*', schema: 'public', table: 'closest_to_pin' }, load).subscribe()
     return () => { supabase.removeChannel(sub) }
-  }, [])
+  }, [ready])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,6 +70,8 @@ export default function PinPage() {
   const selectedHole = PAR3_HOLES.find(h => h.number.toString() === form.hole_number)
   const foundPlayer = players.find(p => p.id === form.for_player_id)
   const forPlayerName = foundPlayer ? displayName(foundPlayer) : 'Myself'
+
+  if (!ready) return null
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>

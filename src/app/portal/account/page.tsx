@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, HOLES } from '@/lib/constants'
 import { displayName } from '@/lib/utils'
+import { useRequireAuth } from '@/lib/auth-hooks'
 import { format } from 'date-fns'
 
 const PAR3_HOLES = HOLES.filter(h => h.par === 3)
@@ -10,6 +11,7 @@ const CROP_SIZE = 280
 const OUTPUT_SIZE = 400
 
 export default function AccountPage() {
+  const { ready } = useRequireAuth()
   const [profile, setProfile] = useState<any>(null)
   const [reservations, setReservations] = useState<any[]>([])
   const [scores, setScores] = useState<any[]>([])
@@ -144,7 +146,7 @@ export default function AccountPage() {
     setAvailability(av || [])
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (ready) load() }, [ready])
 
   const handleSaveProfile = async () => {
     setSaving(true)
@@ -192,6 +194,8 @@ export default function AccountPage() {
     { key: 'stats', label: 'My Stats' },
     { key: 'history', label: 'History' },
   ]
+
+  if (!ready) return null
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

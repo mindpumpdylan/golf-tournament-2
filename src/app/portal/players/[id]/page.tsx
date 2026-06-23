@@ -4,9 +4,11 @@ import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR } from '@/lib/constants'
 import { displayName } from '@/lib/utils'
+import { useRequireAuth } from '@/lib/auth-hooks'
 import Link from 'next/link'
 
 export default function PlayerProfilePage() {
+  const { ready } = useRequireAuth()
   const { id } = useParams<{ id: string }>()
   const [player, setPlayer] = useState<any>(null)
   const [photos, setPhotos] = useState<any[]>([])
@@ -71,7 +73,7 @@ export default function PlayerProfilePage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [id])
+  useEffect(() => { if (ready) load() }, [ready, id])
 
   const handleRequest = async () => {
     setRequesting(true)
@@ -100,6 +102,7 @@ export default function PlayerProfilePage() {
     setResponding(false)
   }
 
+  if (!ready) return null
   if (loading) return <p style={{ color: 'var(--text-muted)', padding: '2rem' }}>Loading...</p>
   if (!player) return <p style={{ color: '#ff6b6b', padding: '2rem' }}>Player not found.</p>
 

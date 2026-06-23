@@ -3,14 +3,16 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { TOURNAMENT_NAME, COURSE_NAME, COURSE_LOCATION } from '@/lib/constants'
+import { TOURNAMENT_NAME, COURSE_NAME, COURSE_LOCATION, SMS_MESSAGE_TYPE } from '@/lib/constants'
 
 function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
 
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', confirm: '' })
+  const [form, setForm] = useState({ full_name: '', email: '', password: '', confirm: '', invited_by: '' })
+  const [phone, setPhone] = useState('')
+  const [smsConsent, setSmsConsent] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -27,16 +29,23 @@ function SignupForm() {
 
     if (signupError) { setError(signupError.message); setLoading(false); return }
 
+    const { data: { session } } = await supabase.auth.getSession()
+
     // If invited via token, link this account to the reservation
-    if (token) {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.access_token) {
-        await fetch('/api/claim-invite', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-          body: JSON.stringify({ token })
-        })
-      }
+    if (token && session?.access_token) {
+      await fetch('/api/claim-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ token })
+      })
+    }
+
+    if (session) {
+      await supabase.from('profiles').update({
+        phone_number: phone.trim() || null,
+        sms_consent: smsConsent,
+        invited_by: form.invited_by.trim() || null,
+      }).eq('id', session.user.id)
     }
 
     router.push('/portal')
@@ -44,6 +53,7 @@ function SignupForm() {
 
   const fields = [
     { label: 'FULL NAME', key: 'full_name', type: 'text', placeholder: 'John Smith', autoComplete: 'name' },
+    { label: 'INVITED BY', key: 'invited_by', type: 'text', placeholder: 'Who invited you?', autoComplete: 'off' },
     { label: 'EMAIL', key: 'email', type: 'email', placeholder: 'you@email.com', autoComplete: 'email' },
     { label: 'PASSWORD', key: 'password', type: 'password', placeholder: '••••••••', autoComplete: 'new-password' },
     { label: 'CONFIRM PASSWORD', key: 'confirm', type: 'password', placeholder: '••••••••', autoComplete: 'new-password' },
@@ -84,6 +94,26 @@ function SignupForm() {
                   onChange={e => setForm({ ...form, [f.key]: e.target.value })} required />
               </div>
             ))}
+
+            <div style={{ borderTop: '1px solid var(--navy-border)', paddingTop: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem', letterSpacing: '0.08em' }}>
+                PHONE NUMBER <span style={{ fontWeight: 400, fontSize: '0.72rem', letterSpacing: 0, textTransform: 'none' }}>(optional)</span>
+              </label>
+              <input className="input" type="tel" placeholder="(555) 555-5555" autoComplete="tel"
+                value={phone} onChange={e => setPhone(e.target.value)} />
+
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', marginTop: '0.75rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={smsConsent} onChange={e => setSmsConsent(e.target.checked)}
+                  style={{ marginTop: '0.2rem', width: '16px', height: '16px', accentColor: 'var(--gold)', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                  By checking this box, you consent to receive recurring {SMS_MESSAGE_TYPE} text messages from {TOURNAMENT_NAME}.
+                  Message frequency varies. Message and data rates may apply. Reply HELP for help or STOP to opt out.
+                  {' '}See our <Link href="/terms" style={{ color: 'var(--gold)' }}>Terms of Service</Link> and{' '}
+                  <Link href="/privacy" style={{ color: 'var(--gold)' }}>Privacy Policy</Link>.
+                </span>
+              </label>
+            </div>
+
             {error && (
               <div style={{ background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: '0.75rem', padding: '0.75rem', color: '#ff6b6b', fontSize: '0.85rem' }}>
                 {error}
@@ -102,6 +132,11 @@ function SignupForm() {
         </div>
 
         <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>
+          <Link href="/terms" style={{ color: 'inherit' }}>Terms of Service</Link>
+          {' · '}
+          <Link href="/privacy" style={{ color: 'inherit' }}>Privacy Policy</Link>
+        </p>
+        <p style={{ textAlign: 'center', marginTop: '0.5rem', color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>
           High Country Classic · Apple Mountain Golf Resort
         </p>
       </div>

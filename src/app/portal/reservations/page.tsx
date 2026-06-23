@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Profile } from '@/lib/types'
 import { CURRENT_YEAR } from '@/lib/constants'
+import { useRequireAuth } from '@/lib/auth-hooks'
 import { differenceInCalendarDays } from 'date-fns'
 
 const GOLD = '#c9a84c'
@@ -62,6 +63,7 @@ function GuestStatusBadge({ signedUp, status, reserved }: { signedUp: boolean; s
 }
 
 export default function ReservationsPage() {
+  const { ready } = useRequireAuth()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [reservations, setReservations] = useState<any[]>([])
 
@@ -124,7 +126,7 @@ export default function ReservationsPage() {
 
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (ready) load() }, [ready])
 
   const showMsg = (text: string, ok = true) => {
     setMessage({ text, ok })
@@ -283,6 +285,8 @@ export default function ReservationsPage() {
   const reservedCount  = reservations.filter(r => !r.invite_token).length
 
   const registrationComplete = isRegistered && !!(profile?.handicap) && hasAvailability
+
+  if (!ready) return null
 
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

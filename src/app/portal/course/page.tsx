@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { HOLES, CURRENT_YEAR, COURSE_NAME, COURSE_LOCATION, PAR } from '@/lib/constants'
 import { displayName } from '@/lib/utils'
+import { useSession } from '@/lib/auth-hooks'
 
 const GOLD = 'var(--gold)'
 const CREAM = 'var(--cream)'
@@ -16,6 +17,7 @@ function parBadgeStyle(par: number) {
 }
 
 export default function CoursePage() {
+  const { isLoggedIn } = useSession()
   const [ctpLeaders, setCtpLeaders] = useState<Record<number, any>>({})
 
   useEffect(() => {
@@ -153,7 +155,7 @@ export default function CoursePage() {
                       <span style={{ fontSize: '0.9rem' }}>🎯</span>
                       <div>
                         <div style={{ fontSize: '0.62rem', color: MUTED, fontWeight: 700, letterSpacing: '0.06em', marginBottom: '0.1rem' }}>CLOSEST TO PIN</div>
-                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: CREAM }}>{displayName(ctpLeader.profiles)}</div>
+                        <div style={{ fontSize: '0.88rem', fontWeight: 700, color: CREAM }}>{isLoggedIn ? displayName(ctpLeader.profiles) : 'A player'}</div>
                       </div>
                     </div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 700, color: GOLD, flexShrink: 0 }}>{ctpLeader.distance_feet}&apos;{ctpLeader.distance_inches}&quot;</div>

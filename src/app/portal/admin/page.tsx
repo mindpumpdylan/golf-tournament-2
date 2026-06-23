@@ -1,10 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, HOLES, PAR } from '@/lib/constants'
 import { format } from 'date-fns'
 import { displayName as getDisplayName, fmtTime, toTimeInput } from '@/lib/utils'
+import { useRequireAdmin } from '@/lib/auth-hooks'
 
 const SIGNUP_URL = 'https://highcountryclassic.com/signup'
 
@@ -27,7 +27,7 @@ const STATUS_OPTIONS = [
 ]
 
 export default function AdminPage() {
-  const router = useRouter()
+  const { ready } = useRequireAdmin()
   const [players, setPlayers] = useState<any[]>([])
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set())
   const [availability, setAvailability] = useState<{ date: string, count: number, names: string[] }[]>([])
@@ -61,14 +61,7 @@ export default function AdminPage() {
   const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null)
   const [addPlayerId, setAddPlayerId] = useState('')
 
-  useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) { router.push('/login'); return }
-      const { data: prof } = await supabase.from('profiles').select('is_admin').eq('id', session.user.id).single()
-      if (!prof?.is_admin) { router.push('/portal'); return }
-      loadAll()
-    })
-  }, [router])
+  useEffect(() => { if (ready) loadAll() }, [ready])
 
   const loadAll = async () => {
     const { data: pl } = await supabase.from('profiles').select('*').order('full_name')
@@ -247,6 +240,8 @@ export default function AdminPage() {
     { key: 'settings', label: 'Settings' },
   ]
 
+  if (!ready) return null
+
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <div>
@@ -386,7 +381,7 @@ export default function AdminPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontWeight: 700, marginBottom: '0.2rem' }}>{getDisplayName(p)}</p>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    {p.email} · HCP: {p.handicap ?? 'N/A'} {p.ghin_number ? '· GHIN: ' + p.ghin_number : ''} {p.phone_number ? '· ' + p.phone_number : ''}
+                    {p.email} · HCP: {p.handicap ?? 'N/A'} {p.ghin_number ? '· GHIN: ' + p.ghin_number : ''} {p.phone_number ? '· ' + p.phone_number : ''} {p.invited_by ? '· Invited by ' + p.invited_by : ''}
                   </p>
                   {(playerDates[p.id] || []).length > 0 ? (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.5rem' }}>
@@ -686,7 +681,7 @@ function ReservationsAdmin() {
   const load = async () => {
     const { data: regs } = await supabase
       .from('tournament_registrations')
-      .select('player_id, created_at, profiles(full_name, nickname, email, phone_number, handicap)')
+      .select('player_id, created_at, profiles(full_name, nickname, email, phone_number, handicap, invited_by)')
       .eq('tournament_year', CURRENT_YEAR)
       .order('created_at', { ascending: true })
     setTournamentRegs(regs || [])
@@ -787,6 +782,7 @@ function ReservationsAdmin() {
                       {prof?.email}
                       {prof?.phone_number && <span> · {prof.phone_number}</span>}
                       {prof?.handicap != null && <span> · HCP {prof.handicap}</span>}
+                      {prof?.invited_by && <span> · Invited by {prof.invited_by}</span>}
                     </p>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>

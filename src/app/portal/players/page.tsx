@@ -3,15 +3,18 @@ import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR } from '@/lib/constants'
 import { displayName } from '@/lib/utils'
+import { useRequireAuth } from '@/lib/auth-hooks'
 import Link from 'next/link'
 
 export default function PlayersPage() {
+  const { ready } = useRequireAuth()
   const [players, setPlayers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<'name' | 'handicap' | 'playing'>('playing')
 
   useEffect(() => {
+    if (!ready) return
     const load = async () => {
       const [{ data: allProfiles }, { data: optedIn }] = await Promise.all([
         supabase.from('profiles').select('id, full_name, nickname, avatar_url, handicap, home_course, bio').order('full_name'),
@@ -22,7 +25,7 @@ export default function PlayersPage() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [ready])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
@@ -47,6 +50,8 @@ export default function PlayersPage() {
     })
     return result
   }, [players, search, sort])
+
+  if (!ready) return null
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

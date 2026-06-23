@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, HOLES, PAR } from '@/lib/constants'
 import type { Score } from '@/lib/types'
+import { useRequireAuth } from '@/lib/auth-hooks'
 
 const FRONT = HOLES.slice(0, 9)
 const BACK  = HOLES.slice(9)
@@ -38,6 +39,7 @@ const TAB_IDLE: React.CSSProperties = {
 }
 
 export default function ScorecardPage() {
+  const { ready } = useRequireAuth()
   const [userId, setUserId] = useState('')
   const [myTeam, setMyTeam] = useState<any>(null)
   const [scores, setScores] = useState<Score[]>([])
@@ -85,14 +87,15 @@ export default function ScorecardPage() {
   }
 
   useEffect(() => {
+    if (!ready) return
     load()
     const sub = supabase.channel('my-scores').on('postgres_changes', { event: '*', schema: 'public', table: 'scores' }, load).subscribe()
     return () => { supabase.removeChannel(sub) }
-  }, [])
+  }, [ready])
 
   useEffect(() => {
-    if (view === 'tournament') loadTournament()
-  }, [view])
+    if (ready && view === 'tournament') loadTournament()
+  }, [ready, view])
 
   useEffect(() => {
     if (!isDirty) return
@@ -158,6 +161,8 @@ export default function ScorecardPage() {
     if (b.total === 0) return -1
     return a.total - b.total
   })
+
+  if (!ready) return null
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

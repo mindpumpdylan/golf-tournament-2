@@ -132,6 +132,12 @@ export default function LoginPage() {
             </div>
           )}
         </div>
+
+        <p style={{ textAlign: 'center', marginTop: '1.5rem', color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>
+          <Link href="/terms" style={{ color: 'inherit' }}>Terms of Service</Link>
+          {' · '}
+          <Link href="/privacy" style={{ color: 'inherit' }}>Privacy Policy</Link>
+        </p>
       </div>
     </div>
   )

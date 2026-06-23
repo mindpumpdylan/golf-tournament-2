@@ -3,9 +3,12 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, ALL_HOLES } from '@/lib/constants'
 import { displayName } from '@/lib/utils'
+import { useSession } from '@/lib/auth-hooks'
 import { format } from 'date-fns'
 
 export default function GalleryPage() {
+  const { isLoggedIn, userId, profile } = useSession()
+  const isAdmin = !!profile?.is_admin
   const [posts, setPosts] = useState<any[]>([])
   const [filter, setFilter] = useState('All')
   const [uploading, setUploading] = useState(false)
@@ -13,8 +16,6 @@ export default function GalleryPage() {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
   const [message, setMessage] = useState('')
-  const [userId, setUserId] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [lightbox, setLightbox] = useState<{ idx: number } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -29,15 +30,7 @@ export default function GalleryPage() {
     setPosts(data || [])
   }
 
-  useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return
-      setUserId(session.user.id)
-      const { data: prof } = await supabase.from('profiles').select('is_admin').eq('id', session.user.id).single()
-      if (prof?.is_admin) setIsAdmin(true)
-    })
-    load()
-  }, [])
+  useEffect(() => { load() }, [])
 
   useEffect(() => {
     if (!lightbox) return
@@ -137,15 +130,17 @@ export default function GalleryPage() {
             {/* Caption row */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '999px', overflow: 'hidden', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#0d0f0a', flexShrink: 0 }}>
-                  {lightboxPost.profiles?.avatar_url
-                    ? <img src={lightboxPost.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : lightboxPost.profiles?.full_name?.charAt(0) || '?'}
-                </div>
+                {isLoggedIn && (
+                  <div style={{ width: '32px', height: '32px', borderRadius: '999px', overflow: 'hidden', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: '#0d0f0a', flexShrink: 0 }}>
+                    {lightboxPost.profiles?.avatar_url
+                      ? <img src={lightboxPost.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : lightboxPost.profiles?.full_name?.charAt(0) || '?'}
+                  </div>
+                )}
                 <div>
                   {lightboxPost.caption && <p style={{ fontWeight: 600, fontSize: '0.9rem', color: '#f0e6cc', marginBottom: '0.1rem' }}>{lightboxPost.caption}</p>}
                   <p style={{ fontSize: '0.78rem', color: 'rgba(240,230,204,0.5)' }}>
-                    {displayName(lightboxPost.profiles)} · {format(new Date(lightboxPost.created_at), 'MMM d, h:mm a')}
+                    {isLoggedIn && `${displayName(lightboxPost.profiles)} · `}{format(new Date(lightboxPost.created_at), 'MMM d, h:mm a')}
                     {lightboxPost.hole_number && ` · Hole ${lightboxPost.hole_number}`}
                   </p>
                 </div>
@@ -190,6 +185,7 @@ export default function GalleryPage() {
       </div>
 
       {/* Upload */}
+      {isLoggedIn && (
       <div className="card">
         <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Share a Moment</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -247,6 +243,7 @@ export default function GalleryPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Filter — only show holes that have content */}
       {posts.length > 0 && (
@@ -295,12 +292,16 @@ export default function GalleryPage() {
                 {post.caption && <p style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: '0.5rem', lineHeight: 1.4 }}>{post.caption}</p>}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-                    <div style={{ width: '24px', height: '24px', borderRadius: '999px', overflow: 'hidden', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700, color: '#0d0f0a', flexShrink: 0 }}>
-                      {post.profiles?.avatar_url
-                        ? <img src={post.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : post.profiles?.full_name?.charAt(0) || '?'}
-                    </div>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName(post.profiles)}</span>
+                    {isLoggedIn && (
+                      <>
+                        <div style={{ width: '24px', height: '24px', borderRadius: '999px', overflow: 'hidden', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700, color: '#0d0f0a', flexShrink: 0 }}>
+                          {post.profiles?.avatar_url
+                            ? <img src={post.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : post.profiles?.full_name?.charAt(0) || '?'}
+                        </div>
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName(post.profiles)}</span>
+                      </>
+                    )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
                     {post.hole_number && (

@@ -110,7 +110,7 @@ export default function PortalHome() {
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!session) return
+      if (!session) { setLoading(false); return }
       const uid = session.user.id
 
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', uid).single()
@@ -220,13 +220,13 @@ export default function PortalHome() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-      {statusBanner && !loading && (
+      {statusBanner && profile && !loading && (
         <div style={{ background: statusBanner.bg, border: `1px solid ${statusBanner.border}`, borderRadius: '1.25rem', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <p style={{ fontWeight: 600, fontSize: '0.9rem', color: statusBanner.color }}>{statusBanner.text}</p>
         </div>
       )}
 
-      {!isRegistered && !loading && (
+      {!isRegistered && profile && !loading && (
         <div style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.3)', borderRadius: '1.5rem', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{ fontSize: '1.75rem' }}>🏌️</span>
@@ -241,7 +241,7 @@ export default function PortalHome() {
         </div>
       )}
 
-      {pendingPairingRequests.length > 0 && !loading && (
+      {pendingPairingRequests.length > 0 && profile && !loading && (
         <div style={{ background: 'rgba(0,255,135,0.05)', border: '1px solid rgba(0,255,135,0.2)', borderRadius: '1.5rem', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <p style={{ fontWeight: 700, fontSize: '0.88rem', color: '#00ff87', letterSpacing: '0.05em' }}>⛳ PAIRING REQUESTS</p>
           {pendingPairingRequests.map((r: any) => (
@@ -264,7 +264,7 @@ export default function PortalHome() {
         </div>
       )}
 
-      {!hasSetAvailability && !loading && (
+      {!hasSetAvailability && profile && !loading && (
         <div style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: '1.5rem', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{ fontSize: '1.75rem' }}>📅</span>
@@ -277,7 +277,7 @@ export default function PortalHome() {
         </div>
       )}
 
-      {isRegistered && !loading && (() => {
+      {isRegistered && profile && !loading && (() => {
         const missing = [!profile?.handicap && 'Handicap', !profile?.avatar_url && 'Profile Photo', !profile?.phone_number && 'Phone', !profile?.bio && 'Bio', !profile?.home_course && 'Home Course'].filter(Boolean) as string[]
         if (!missing.length) return null
         return (
@@ -289,7 +289,7 @@ export default function PortalHome() {
       })()}
 
       {/* Live Activity Feed */}
-      {activityFeed.length > 0 && !loading && (
+      {activityFeed.length > 0 && profile && !loading && (
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '1.5rem', overflow: 'hidden' }}>
           <div style={{ padding: '0.875rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--green-live)', display: 'inline-block', animation: 'feedPulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
@@ -342,11 +342,13 @@ export default function PortalHome() {
           <p style={{ color: 'rgba(240,230,204,0.45)', fontSize: '0.8rem', marginBottom: '1.5rem', letterSpacing: '0.1em' }}>{COURSE_LOCATION.toUpperCase()}</p>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <span style={{ background: 'rgba(201,168,76,0.12)', color: GOLD, border: '1px solid rgba(201,168,76,0.25)', borderRadius: '999px', padding: '0.4rem 1.25rem', fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.1em' }}>{CURRENT_YEAR} SEASON</span>
-            {loading ? (
-              <span style={{ color: 'rgba(240,230,204,0.45)', fontSize: '0.9rem' }}>Welcome back!</span>
-            ) : profile ? (
+            {loading ? null : profile ? (
               <span style={{ color: 'rgba(240,230,204,0.7)', fontSize: '0.9rem' }}>Welcome back, <span style={{ color: GOLD, fontWeight: 700 }}>{displayName(profile)}</span></span>
-            ) : null}
+            ) : (
+              <span style={{ color: 'rgba(240,230,204,0.6)', fontSize: '0.9rem' }}>
+                Browsing as a guest — <Link href="/signup" style={{ color: GOLD, fontWeight: 700 }}>sign up to join</Link>
+              </span>
+            )}
           </div>
           {tournamentDate && (() => {
             const days = Math.ceil((new Date(tournamentDate + 'T12:00:00').getTime() - Date.now()) / 86400000)
@@ -369,7 +371,7 @@ export default function PortalHome() {
             <SkeletonWidget />
             <SkeletonWidget />
           </>
-        ) : (
+        ) : !profile ? null : (
           <>
             {/* Date Poll */}
             <Link href="/portal/availability" style={{ textDecoration: 'none', animation: 'fadeSlideUp 0.45s ease-out both 0ms' }}>
@@ -562,6 +564,15 @@ export default function PortalHome() {
           </>
         )}
       </div>
+
+      {!loading && !profile && (
+        <div className="card" style={{ textAlign: 'center', padding: '2.5rem 2rem' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>⛳</div>
+          <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>Want the full experience?</h2>
+          <p style={{ color: MUTED, marginBottom: '1.25rem' }}>Create a free account to see the leaderboard, your team, live scores, and more.</p>
+          <Link href="/signup" className="btn-electric">Create Account →</Link>
+        </div>
+      )}
     </div>
   )
 }

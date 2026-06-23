@@ -7,12 +7,14 @@ export type Profile = {
   handicap: number | null
   ghin_number: string | null
   phone_number: string | null
+  sms_consent: boolean
   is_admin: boolean
   created_at: string
   bio: string | null
   home_course: string | null
   years_playing: number | null
   shirt_size: string | null
+  invited_by: string | null
 }
 
 export type AvailabilityDate = {

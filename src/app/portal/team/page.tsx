@@ -2,8 +2,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { displayName } from '@/lib/utils'
+import { useRequireAuth } from '@/lib/auth-hooks'
 
 export default function TeamPage() {
+  const { ready } = useRequireAuth()
   const [userId, setUserId] = useState('')
   const [myTeam, setMyTeam] = useState<any>(null)
   const [members, setMembers] = useState<any[]>([])
@@ -49,7 +51,7 @@ export default function TeamPage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (ready) load() }, [ready])
 
   const handleSaveName = async () => {
     if (!myTeam || !teamNameInput.trim() || savingName) return
@@ -117,6 +119,8 @@ export default function TeamPage() {
   const sortedSuggestions = [...suggestions].sort(
     (a, b) => (b.team_name_votes?.length || 0) - (a.team_name_votes?.length || 0)
   )
+
+  if (!ready) return null
 
   if (loading) return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
