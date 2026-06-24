@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import BackNav from '@/components/BackNav'
 import { TOURNAMENT_NAME, SUPPORT_EMAIL, SUPPORT_PHONE, SMS_MESSAGE_TYPE } from '@/lib/constants'
 
 export const metadata = {
@@ -13,9 +14,7 @@ export default function TermsOfServicePage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '3rem 1rem' }}>
       <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '2rem' }}>
-          <Link href="/" style={{ color: 'var(--gold)', fontWeight: 700, textDecoration: 'none', fontSize: '0.85rem' }}>← {TOURNAMENT_NAME}</Link>
-        </div>
+        <BackNav />
 
         <h1 style={{ fontSize: '2.25rem', color: 'var(--gold)', marginBottom: '0.5rem' }}>Terms of Service</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '2rem' }}>Last updated: June 18, 2026</p>
