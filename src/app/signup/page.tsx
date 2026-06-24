@@ -46,6 +46,15 @@ function SignupForm() {
         sms_consent: smsConsent,
         invited_by: form.invited_by.trim() || null,
       }).eq('id', session.user.id)
+
+      if (phone.trim() && smsConsent) {
+        try {
+          await fetch('/api/sms/welcome', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          })
+        } catch {}
+      }
     }
 
     router.push('/portal')

@@ -6,6 +6,7 @@ import { useRequireAuth } from '@/lib/auth-hooks'
 export default function SettingsPage() {
   const { ready, userId } = useRequireAuth()
   const [smsConsent, setSmsConsent] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState<string | null>(null)
   const [smsSaving, setSmsSaving] = useState(false)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -15,8 +16,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!ready || !userId) return
-    supabase.from('profiles').select('sms_consent').eq('id', userId).single()
-      .then(({ data }) => setSmsConsent(!!data?.sms_consent))
+    supabase.from('profiles').select('sms_consent, phone_number').eq('id', userId).single()
+      .then(({ data }) => { setSmsConsent(!!data?.sms_consent); setPhoneNumber(data?.phone_number || null) })
   }, [ready, userId])
 
   const handleToggleSms = async (value: boolean) => {
@@ -24,6 +25,18 @@ export default function SettingsPage() {
     setSmsSaving(true)
     await supabase.from('profiles').update({ sms_consent: value }).eq('id', userId)
     setSmsSaving(false)
+
+    if (value && phoneNumber) {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        try {
+          await fetch('/api/sms/welcome', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          })
+        } catch {}
+      }
+    }
   }
 
   const handleChangePassword = async (e: React.FormEvent) => {
