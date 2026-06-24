@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, ALL_HOLES } from '@/lib/constants'
 import { displayName } from '@/lib/utils'
@@ -185,6 +186,13 @@ export default function GalleryPage() {
       </div>
 
       {/* Upload */}
+      {!isLoggedIn && (
+        <div className="card" style={{ textAlign: 'center', padding: '1.5rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            <Link href="/signup" style={{ color: 'var(--gold)', fontWeight: 700 }}>Create a free account</Link> to share your own photos and videos from tournament day.
+          </p>
+        </div>
+      )}
       {isLoggedIn && (
       <div className="card">
         <h2 style={{ fontSize: '1.3rem', marginBottom: '1.25rem' }}>Share a Moment</h2>

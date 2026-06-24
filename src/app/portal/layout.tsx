@@ -106,26 +106,19 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
           {/* Right side */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-            {/* Account menu / Sign In+Up — desktop only */}
+            {/* Account menu / Sign Up — desktop only */}
             {!isMobile && (
-              isLoggedIn ? (
-                <AccountMenu profile={profile} onSignOut={handleSignOut} />
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Link href="/login" style={{
-                    padding: '0.45rem 0.9rem', borderRadius: '0.75rem', fontSize: '0.8rem', fontWeight: 700,
-                    textDecoration: 'none', color: 'var(--cream)', border: '1px solid var(--border)',
-                  }}>
-                    Sign In
-                  </Link>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <AccountMenu profile={profile} isLoggedIn={isLoggedIn} onSignOut={handleSignOut} />
+                {!isLoggedIn && (
                   <Link href="/signup" style={{
                     padding: '0.45rem 0.9rem', borderRadius: '0.75rem', fontSize: '0.8rem', fontWeight: 700,
                     textDecoration: 'none', color: '#0d0f0a', background: 'var(--gold)',
                   }}>
                     Sign Up
                   </Link>
-                </div>
-              )
+                )}
+              </div>
             )}
 
             {/* Hamburger — mobile only */}
@@ -227,63 +220,61 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             )
           })}
 
+          <Link href={isLoggedIn ? '/portal/account' : '/signup'} onClick={close} style={{
+            padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 600,
+            textDecoration: 'none', letterSpacing: '0.06em', transition: 'all 0.15s',
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            color: pathname === '/portal/account' ? '#c9a84c' : '#f0e6cc',
+            background: pathname === '/portal/account' ? 'rgba(201,168,76,0.1)' : 'transparent',
+            border: pathname === '/portal/account' ? '1px solid rgba(201,168,76,0.2)' : '1px solid transparent',
+          }}>
+            <span style={{ fontSize: '1rem' }}>👤</span>
+            MY PROFILE
+          </Link>
+
           {isLoggedIn && (
-            <>
-              <Link href="/portal/account" onClick={close} style={{
-                padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 600,
-                textDecoration: 'none', letterSpacing: '0.06em', transition: 'all 0.15s',
-                display: 'flex', alignItems: 'center', gap: '0.75rem',
-                color: pathname === '/portal/account' ? '#c9a84c' : '#f0e6cc',
-                background: pathname === '/portal/account' ? 'rgba(201,168,76,0.1)' : 'transparent',
-                border: pathname === '/portal/account' ? '1px solid rgba(201,168,76,0.2)' : '1px solid transparent',
-              }}>
-                <span style={{ fontSize: '1rem' }}>👤</span>
-                MY ACCOUNT
-              </Link>
+            <Link href="/portal/settings" onClick={close} style={{
+              padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 600,
+              textDecoration: 'none', letterSpacing: '0.06em', transition: 'all 0.15s',
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              color: pathname === '/portal/settings' ? '#c9a84c' : '#f0e6cc',
+              background: pathname === '/portal/settings' ? 'rgba(201,168,76,0.1)' : 'transparent',
+              border: pathname === '/portal/settings' ? '1px solid rgba(201,168,76,0.2)' : '1px solid transparent',
+            }}>
+              <span style={{ fontSize: '1rem' }}>🔧</span>
+              SETTINGS
+            </Link>
+          )}
 
-              <Link href="/portal/settings" onClick={close} style={{
-                padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 600,
-                textDecoration: 'none', letterSpacing: '0.06em', transition: 'all 0.15s',
-                display: 'flex', alignItems: 'center', gap: '0.75rem',
-                color: pathname === '/portal/settings' ? '#c9a84c' : '#f0e6cc',
-                background: pathname === '/portal/settings' ? 'rgba(201,168,76,0.1)' : 'transparent',
-                border: pathname === '/portal/settings' ? '1px solid rgba(201,168,76,0.2)' : '1px solid transparent',
-              }}>
-                <span style={{ fontSize: '1rem' }}>🔧</span>
-                SETTINGS
-              </Link>
+          <Link href="/terms" onClick={close} style={{
+            padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 600,
+            textDecoration: 'none', letterSpacing: '0.06em', transition: 'all 0.15s',
+            display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#f0e6cc',
+          }}>
+            <span style={{ fontSize: '1rem' }}>📄</span>
+            TERMS OF SERVICE
+          </Link>
 
-              <Link href="/terms" onClick={close} style={{
-                padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 600,
-                textDecoration: 'none', letterSpacing: '0.06em', transition: 'all 0.15s',
-                display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#f0e6cc',
-              }}>
-                <span style={{ fontSize: '1rem' }}>📄</span>
-                TERMS OF SERVICE
-              </Link>
+          <Link href="/privacy" onClick={close} style={{
+            padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 600,
+            textDecoration: 'none', letterSpacing: '0.06em', transition: 'all 0.15s',
+            display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#f0e6cc',
+          }}>
+            <span style={{ fontSize: '1rem' }}>🔒</span>
+            PRIVACY POLICY
+          </Link>
 
-              <Link href="/privacy" onClick={close} style={{
-                padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 600,
-                textDecoration: 'none', letterSpacing: '0.06em', transition: 'all 0.15s',
-                display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#f0e6cc',
-              }}>
-                <span style={{ fontSize: '1rem' }}>🔒</span>
-                PRIVACY POLICY
-              </Link>
-
-              {profile?.is_admin && (
-                <Link href="/portal/admin" onClick={close} style={{
-                  padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 700,
-                  textDecoration: 'none', letterSpacing: '0.06em',
-                  display: 'flex', alignItems: 'center', gap: '0.75rem',
-                  color: '#c9a84c', background: 'rgba(201,168,76,0.08)',
-                  border: '1px solid rgba(201,168,76,0.2)',
-                }}>
-                  <span style={{ fontSize: '1rem' }}>⚙️</span>
-                  ADMIN
-                </Link>
-              )}
-            </>
+          {isLoggedIn && profile?.is_admin && (
+            <Link href="/portal/admin" onClick={close} style={{
+              padding: '0.8rem 1rem', borderRadius: '0.875rem', fontSize: '0.85rem', fontWeight: 700,
+              textDecoration: 'none', letterSpacing: '0.06em',
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              color: '#c9a84c', background: 'rgba(201,168,76,0.08)',
+              border: '1px solid rgba(201,168,76,0.2)',
+            }}>
+              <span style={{ fontSize: '1rem' }}>⚙️</span>
+              ADMIN
+            </Link>
           )}
         </div>
 

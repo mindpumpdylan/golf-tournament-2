@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import type { Profile } from '@/lib/types'
-import { COURSE_NAME, COURSE_LOCATION, CURRENT_YEAR } from '@/lib/constants'
+import { COURSE_NAME, COURSE_LOCATION, CURRENT_YEAR, TOURNAMENT_NAME, PAR } from '@/lib/constants'
 import { displayName, fmtTime } from '@/lib/utils'
 
 const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '1.5rem', padding: '1.5rem' }
@@ -110,6 +110,14 @@ export default function PortalHome() {
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      try {
+        const { data: settingsRows } = await supabase.from('tournament_settings').select('key, value').in('key', ['status', 'date'])
+        settingsRows?.forEach((r: any) => {
+          if (r.key === 'status') setTournamentStatus(r.value)
+          if (r.key === 'date') setTournamentDate(r.value)
+        })
+      } catch {}
+
       if (!session) { setLoading(false); return }
       const uid = session.user.id
 
@@ -176,14 +184,6 @@ export default function PortalHome() {
         .eq('tournament_year', CURRENT_YEAR)
         .eq('status', 'pending')
       setPendingPairingRequests(pairingReqs || [])
-
-      try {
-        const { data: settingsRows } = await supabase.from('tournament_settings').select('key, value').in('key', ['status', 'date'])
-        settingsRows?.forEach((r: any) => {
-          if (r.key === 'status') setTournamentStatus(r.value)
-          if (r.key === 'date') setTournamentDate(r.value)
-        })
-      } catch {}
 
       setLoading(false)
     })
@@ -566,12 +566,42 @@ export default function PortalHome() {
       </div>
 
       {!loading && !profile && (
-        <div className="card" style={{ textAlign: 'center', padding: '2.5rem 2rem' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>⛳</div>
-          <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>Want the full experience?</h2>
-          <p style={{ color: MUTED, marginBottom: '1.25rem' }}>Create a free account to see the leaderboard, your team, live scores, and more.</p>
-          <Link href="/signup" className="btn-electric">Create Account →</Link>
-        </div>
+        <>
+          <div className="card" style={{ textAlign: 'center', padding: '2.5rem 2rem' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>⛳</div>
+            <h2 style={{ fontSize: '1.4rem', marginBottom: '0.5rem' }}>Want the full experience?</h2>
+            <p style={{ color: MUTED, marginBottom: '1.25rem' }}>Create a free account to see the leaderboard, your team, live scores, and more.</p>
+            <Link href="/signup" className="btn-electric">Create Account →</Link>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+            <div style={CARD}>
+              <span style={{ fontFamily: 'JerseyM54, Georgia, serif', fontSize: '1.1rem', color: GOLD }}>About the Tournament</span>
+              <p style={{ color: MUTED, fontSize: '0.88rem', marginTop: '0.75rem', lineHeight: 1.6 }}>
+                {TOURNAMENT_NAME} is a team golf event held at {COURSE_NAME} in {COURSE_LOCATION} — 18 holes, par {PAR}.
+                Players are grouped into teams, compete for closest-to-pin honors on select holes, and track live scores
+                throughout the day.
+              </p>
+            </div>
+            <div style={CARD}>
+              <span style={{ fontFamily: 'JerseyM54, Georgia, serif', fontSize: '1.1rem', color: GOLD }}>What's Included</span>
+              <ul style={{ color: MUTED, fontSize: '0.88rem', marginTop: '0.75rem', lineHeight: 1.8, paddingLeft: '1.1rem' }}>
+                <li>Live team leaderboard and hole-by-hole scorecards</li>
+                <li>Closest-to-pin tracking across the round</li>
+                <li>A shared photo gallery from tournament day</li>
+                <li>Date polling and reservation requests for guests</li>
+              </ul>
+            </div>
+            <div style={CARD}>
+              <span style={{ fontFamily: 'JerseyM54, Georgia, serif', fontSize: '1.1rem', color: GOLD }}>The Course</span>
+              <p style={{ color: MUTED, fontSize: '0.88rem', marginTop: '0.75rem', lineHeight: 1.6 }}>
+                {COURSE_NAME} features 18 holes carved through the Sierra foothills, each named for its own piece of
+                gold-rush history. See the full scorecard, yardages, and hole-by-hole detail on the{' '}
+                <Link href="/portal/course" style={{ color: GOLD, fontWeight: 700 }}>Course page</Link>.
+              </p>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

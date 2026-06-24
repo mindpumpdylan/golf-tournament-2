@@ -51,6 +51,12 @@ export default function CoursePage() {
       <div>
         <h1 style={{ fontSize: '2.5rem', color: GOLD, marginBottom: '0.5rem' }}>⛳ Course Guide</h1>
         <p style={{ color: MUTED, marginBottom: '0.75rem' }}>{COURSE_NAME} · {COURSE_LOCATION}</p>
+        <p style={{ color: MUTED, fontSize: '0.9rem', maxWidth: '640px', lineHeight: 1.6, marginBottom: '1rem' }}>
+          Eighteen holes through the Sierra foothills, each named for a piece of gold-rush history — from{' '}
+          <span style={{ color: CREAM, fontWeight: 600 }}>GoldSeeker</span> on the front nine to{' '}
+          <span style={{ color: CREAM, fontWeight: 600 }}>Gamble Creek</span> closing out the back. Every par-3 hosts a
+          closest-to-pin contest during tournament play.
+        </p>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <span style={{ background: 'rgba(201,168,76,0.1)', color: GOLD, border: '1px solid rgba(201,168,76,0.25)', borderRadius: '999px', padding: '0.3rem 0.875rem', fontSize: '0.82rem', fontWeight: 700 }}>Par {PAR}</span>
           <span style={{ background: 'rgba(240,230,204,0.05)', color: CREAM, border: '1px solid rgba(240,230,204,0.12)', borderRadius: '999px', padding: '0.3rem 0.875rem', fontSize: '0.82rem', fontWeight: 600 }}>{maxYards.toLocaleString()} yds (max)</span>
