@@ -61,6 +61,16 @@ export type Score = {
   created_at: string
 }
 
+export type ShotLog = {
+  id: string
+  team_id: string
+  hole_number: number
+  shot_number: number
+  player_id: string
+  entered_by: string
+  created_at: string
+}
+
 export type ClosestToPin = {
   id: string
   tournament_year: number

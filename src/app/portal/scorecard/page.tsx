@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_YEAR, HOLES, PAR } from '@/lib/constants'
-import type { Score } from '@/lib/types'
+import type { Score, ShotLog } from '@/lib/types'
 import { useRequireAuth } from '@/lib/auth-hooks'
+import { displayName } from '@/lib/utils'
 
 const FRONT = HOLES.slice(0, 9)
 const BACK  = HOLES.slice(9)
@@ -50,10 +51,13 @@ export default function ScorecardPage() {
   const [birdieFlash, setBirdieFlash] = useState<number | null>(null)
   const [isDirty, setIsDirty] = useState(false)
 
-  const [view, setView] = useState<'team' | 'tournament'>('team')
+  const [view, setView] = useState<'team' | 'tournament' | 'shots'>('team')
   const [allTeams, setAllTeams] = useState<any[]>([])
   const [allScores, setAllScores] = useState<Score[]>([])
   const [loadingTournament, setLoadingTournament] = useState(false)
+
+  const [teamRoster, setTeamRoster] = useState<any[]>([])
+  const [shotLogs, setShotLogs] = useState<ShotLog[]>([])
 
   const load = async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -69,6 +73,11 @@ export default function ScorecardPage() {
         const editMap: { [hole: number]: string } = {}
         sc?.forEach((s: Score) => { editMap[s.hole_number] = s.strokes.toString() })
         setEditing(editMap)
+
+        const { data: roster } = await supabase.from('team_members').select('player_id, profiles(*)').eq('team_id', team.id)
+        setTeamRoster(roster || [])
+        const { data: shots } = await supabase.from('shot_logs').select('*').eq('team_id', team.id)
+        setShotLogs(shots || [])
       }
     }
   }
@@ -90,7 +99,8 @@ export default function ScorecardPage() {
     if (!ready) return
     load()
     const sub = supabase.channel('my-scores').on('postgres_changes', { event: '*', schema: 'public', table: 'scores' }, load).subscribe()
-    return () => { supabase.removeChannel(sub) }
+    const shotSub = supabase.channel('my-shot-logs').on('postgres_changes', { event: '*', schema: 'public', table: 'shot_logs' }, load).subscribe()
+    return () => { supabase.removeChannel(sub); supabase.removeChannel(shotSub) }
   }, [ready])
 
   useEffect(() => {
@@ -116,6 +126,7 @@ export default function ScorecardPage() {
           const { error } = await supabase.from('scores').delete().eq('id', existing.id)
           if (error) hasError = true
         }
+        await supabase.from('shot_logs').delete().eq('team_id', myTeam.id).eq('hole_number', holeNum)
         continue
       }
       const { error } = await supabase.from('scores').upsert(
@@ -123,6 +134,7 @@ export default function ScorecardPage() {
         { onConflict: 'team_id,hole_number' }
       )
       if (error) hasError = true
+      await supabase.from('shot_logs').delete().eq('team_id', myTeam.id).eq('hole_number', holeNum).gt('shot_number', parseInt(strokes))
     }
     setMessage(hasError ? 'Some scores failed to save.' : 'Scores saved!')
     setTimeout(() => setMessage(''), 3000)
@@ -205,6 +217,9 @@ export default function ScorecardPage() {
         </button>
         <button onClick={() => setView('tournament')} style={view === 'tournament' ? TAB_ACTIVE : TAB_IDLE}>
           Tournament Scorecard
+        </button>
+        <button onClick={() => setView('shots')} style={view === 'shots' ? TAB_ACTIVE : TAB_IDLE}>
+          Shot Log
         </button>
       </div>
 
@@ -359,6 +374,109 @@ export default function ScorecardPage() {
         </>
       )}
 
+      {/* ── SHOT LOG ── */}
+      {view === 'shots' && (
+        <ShotLogPanel
+          myTeam={myTeam}
+          userId={userId}
+          teamRoster={teamRoster}
+          shotLogs={shotLogs}
+          setShotLogs={setShotLogs}
+          getStrokes={getStrokes}
+          canEdit={canEdit}
+        />
+      )}
+
+    </div>
+  )
+}
+
+function ShotLogPanel({
+  myTeam, userId, teamRoster, shotLogs, setShotLogs, getStrokes, canEdit,
+}: {
+  myTeam: any
+  userId: string
+  teamRoster: any[]
+  shotLogs: ShotLog[]
+  setShotLogs: React.Dispatch<React.SetStateAction<ShotLog[]>>
+  getStrokes: (holeNum: number) => number
+  canEdit: boolean
+}) {
+  if (!myTeam) {
+    return (
+      <div style={{ background: 'rgba(201,168,76,0.06)', border: '1px solid rgba(201,168,76,0.2)', borderRadius: '1rem', padding: '0.875rem 1.25rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+        You're not on a team yet — the shot log will be available once the admin assigns teams.
+      </div>
+    )
+  }
+
+  const handlePick = async (holeNum: number, shotNum: number, playerId: string) => {
+    const existing = shotLogs.find(s => s.hole_number === holeNum && s.shot_number === shotNum)
+    if (!playerId) {
+      if (existing) {
+        await supabase.from('shot_logs').delete().eq('id', existing.id)
+        setShotLogs(prev => prev.filter(s => s.id !== existing.id))
+      }
+      return
+    }
+    const { data, error } = await supabase.from('shot_logs').upsert(
+      { team_id: myTeam.id, hole_number: holeNum, shot_number: shotNum, player_id: playerId, entered_by: userId },
+      { onConflict: 'team_id,hole_number,shot_number' }
+    ).select().single()
+    if (!error && data) {
+      setShotLogs(prev => [...prev.filter(s => !(s.hole_number === holeNum && s.shot_number === shotNum)), data as ShotLog])
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+        Optional: for each hole, note whose ball was used for each stroke. Enter a hole's score on the Team Scorecard tab first — its shot slots will show up here.
+      </p>
+      {HOLES.map(h => {
+        const strokes = getStrokes(h.number)
+        if (!strokes) {
+          return (
+            <div key={h.number} className="card" style={{ opacity: 0.5, padding: '0.875rem 1.25rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Hole {h.number} · {h.name} · Par {h.par} — enter a score on the Team Scorecard tab first
+              </span>
+            </div>
+          )
+        }
+        return (
+          <div key={h.number} className="card">
+            <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', marginBottom: '1rem' }}>
+              HOLE {h.number} · {h.name.toUpperCase()} · PAR {h.par} · {strokes} STROKE{strokes === 1 ? '' : 'S'}
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.875rem' }}>
+              {Array.from({ length: strokes }, (_, i) => i + 1).map(shotNum => {
+                const picked = shotLogs.find(s => s.hole_number === h.number && s.shot_number === shotNum)?.player_id || ''
+                return (
+                  <div key={shotNum}>
+                    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.4rem', letterSpacing: '0.05em' }}>
+                      SHOT {shotNum}
+                    </label>
+                    <select
+                      className="input"
+                      value={picked}
+                      disabled={!canEdit}
+                      onChange={e => handlePick(h.number, shotNum, e.target.value)}
+                    >
+                      <option value="">— Select player —</option>
+                      {teamRoster.map(m => (
+                        <option key={m.player_id} value={m.player_id}>
+                          {displayName(m.profiles)}{m.player_id === userId ? ' (you)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
