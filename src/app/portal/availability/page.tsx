@@ -8,6 +8,7 @@ import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isToday
 export default function AvailabilityPage() {
   const { ready } = useRequireAuth()
   const [userId, setUserId] = useState('')
+  const [userName, setUserName] = useState('')
   const [isAdmin, setIsAdmin] = useState(false)
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({})
@@ -23,8 +24,9 @@ export default function AvailabilityPage() {
     if (!session) return
     setUserId(session.user.id)
 
-    const { data: prof } = await supabase.from('profiles').select('is_admin').eq('id', session.user.id).single()
+    const { data: prof } = await supabase.from('profiles').select('is_admin, full_name, nickname').eq('id', session.user.id).single()
     setIsAdmin(prof?.is_admin || false)
+    setUserName(prof?.nickname?.trim() || prof?.full_name || session.user.email || 'A player')
 
     // My selections
     const { data: myDates } = await supabase
@@ -82,6 +84,15 @@ export default function AvailabilityPage() {
     }
     setSaving(false); setSaved(true)
     load()
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      fetch('/api/notify/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ message: `📅 ${userName} submitted availability: ${selectedDates.length} date${selectedDates.length !== 1 ? 's' : ''}` }),
+      }).catch(() => {})
+    }
   }
 
   const handleSetTournamentDate = async (dateStr: string) => {

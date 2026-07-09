@@ -202,6 +202,12 @@ export default function PortalHome() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ email: profile.email, name: displayName(profile) }),
       }).catch(() => {})
+
+      fetch('/api/notify/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ message: `⛳ ${displayName(profile)} registered for the ${CURRENT_YEAR} tournament!` }),
+      }).catch(() => {})
     }
   }
 

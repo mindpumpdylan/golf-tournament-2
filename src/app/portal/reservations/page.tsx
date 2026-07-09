@@ -141,6 +141,12 @@ export default function ReservationsPage() {
     setIsRegistered(true)
     setRegistering(false)
     showMsg(`You're in for ${CURRENT_YEAR}! You can opt out any time before teams are announced.`)
+
+    fetch('/api/notify/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ message: `⛳ ${profile?.full_name || 'A player'} registered for the ${CURRENT_YEAR} tournament!` }),
+    }).catch(() => {})
   }
 
   const handleOptOut = async () => {
@@ -181,6 +187,12 @@ export default function ReservationsPage() {
         setSubmitting(false)
         return
       }
+      fetch('/api/notify/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ message: `🎟 ${profile?.full_name || 'A player'} reserved a guest spot for ${form.guest_name}` }),
+      }).catch(() => {})
+
       setForm({ guest_name: '', guest_email: '', guest_phone: '', pairing_preference: '' })
       setShowForm(false)
       showMsg(`Spot reserved for ${form.guest_name}!`)

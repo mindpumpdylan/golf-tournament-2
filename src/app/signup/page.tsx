@@ -55,6 +55,12 @@ function SignupForm() {
           })
         } catch {}
       }
+
+      fetch('/api/notify/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ message: `🆕 New signup: ${form.full_name} (${form.email})` }),
+      }).catch(() => {})
     }
 
     router.push('/portal')

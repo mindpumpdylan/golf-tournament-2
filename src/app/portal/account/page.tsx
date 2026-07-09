@@ -176,6 +176,12 @@ export default function AccountPage() {
       setMessage('✓ Profile saved!')
       setTimeout(() => setMessage(''), 4000)
       load()
+
+      fetch('/api/notify/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ message: `👤 ${fullName.trim() || 'A player'} updated their profile` }),
+      }).catch(() => {})
     }
   }
 
