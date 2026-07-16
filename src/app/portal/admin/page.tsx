@@ -141,7 +141,14 @@ export default function AdminPage() {
 
   const handleRemoveRegistration = async (playerId: string, name: string) => {
     if (!window.confirm(`Remove ${name} from the ${CURRENT_YEAR} tournament? Their account stays intact.`)) return
-    await supabase.from('tournament_registrations').delete().eq('player_id', playerId).eq('tournament_year', CURRENT_YEAR)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    const res = await fetch('/api/admin/delete-registration', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      body: JSON.stringify({ playerId }),
+    })
+    if (!res.ok) { setMessage('Failed to remove registration.'); setTimeout(() => setMessage(''), 3000); return }
     loadAll()
   }
 
